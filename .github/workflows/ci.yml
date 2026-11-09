@@ -46,3 +46,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Check Tauri Rust
         run: cargo check -p lingo-bridge-desktop
+
+  sherpa-onnx-optional:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check optional offline STT and TTS adapters
+        run: cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
