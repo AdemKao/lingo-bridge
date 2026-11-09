@@ -6,9 +6,9 @@
 //! cargo run -p lingo-speech --features offline-pipeline --bin lingo-speech-smoke --
 //!   translate-wav zh-ja IN.WAV STT.ONNX TOKENS.TXT qwen3:4b TTS_DIR - OUT.WAV
 
-use lingo_speech::sherpa::{matcha_chinese, sensevoice_wav, supertonic_japanese};
 #[cfg(feature = "offline-pipeline")]
 use lingo_speech::offline::{translate_text, translate_wav, Direction, Settings};
+use lingo_speech::sherpa::{matcha_chinese, sensevoice_wav, supertonic_japanese};
 use std::path::Path;
 
 const USAGE: &str = "使用方法：\
@@ -32,11 +32,7 @@ fn run() -> Result<(), String> {
         }
         Some("tts-ja") if args.len() >= 5 => {
             let content = args[4..].join(" ");
-            let saved = supertonic_japanese(
-                Path::new(&args[2]),
-                &content,
-                Path::new(&args[3]),
-            )?;
+            let saved = supertonic_japanese(Path::new(&args[2]), &content, Path::new(&args[3]))?;
             println!("Saved: {}", saved.display());
             Ok(())
         }
@@ -77,7 +73,10 @@ fn run() -> Result<(), String> {
         #[cfg(feature = "offline-pipeline")]
         Some("translate-text") if args.len() >= 5 => {
             let direction = Direction::parse(&args[2])?;
-            println!("{}", translate_text(&args[3], direction, &args[4..].join(" "))?);
+            println!(
+                "{}",
+                translate_text(&args[3], direction, &args[4..].join(" "))?
+            );
             Ok(())
         }
         _ => Err(USAGE.into()),

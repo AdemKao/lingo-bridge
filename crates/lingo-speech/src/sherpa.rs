@@ -5,8 +5,8 @@
 
 use sherpa_onnx::{
     GenerationConfig, OfflineRecognizer, OfflineRecognizerConfig, OfflineSenseVoiceModelConfig,
-    OfflineTts, OfflineTtsConfig, OfflineTtsMatchaModelConfig,
-    OfflineTtsSupertonicModelConfig, Wave,
+    OfflineTts, OfflineTtsConfig, OfflineTtsMatchaModelConfig, OfflineTtsSupertonicModelConfig,
+    Wave,
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -108,7 +108,6 @@ pub fn supertonic_japanese(
     }
     Ok(wav_out.to_path_buf())
 }
-
 
 /// Simplified/Traditional Chinese speech with Matcha-TTS Chinese Baker ONNX.
 ///
