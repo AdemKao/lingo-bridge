@@ -23,7 +23,10 @@ impl PcmFormat {
         if channels == 0 {
             return Err(AudioError::ZeroChannels);
         }
-        Ok(Self { sample_rate_hz, channels })
+        Ok(Self {
+            sample_rate_hz,
+            channels,
+        })
     }
 
     pub fn duration(self, interleaved_samples: usize) -> Result<Duration, AudioError> {
@@ -31,7 +34,9 @@ impl PcmFormat {
             return Err(AudioError::PartialFrame);
         }
         let frames = interleaved_samples / usize::from(self.channels);
-        Ok(Duration::from_secs_f64(frames as f64 / f64::from(self.sample_rate_hz)))
+        Ok(Duration::from_secs_f64(
+            frames as f64 / f64::from(self.sample_rate_hz),
+        ))
     }
 }
 
@@ -49,6 +54,9 @@ mod tests {
     fn invalid_formats_rejected() {
         assert_eq!(PcmFormat::new(0, 1), Err(AudioError::ZeroSampleRate));
         assert_eq!(PcmFormat::new(48_000, 0), Err(AudioError::ZeroChannels));
-        assert_eq!(PcmFormat::new(48_000, 2).unwrap().duration(3), Err(AudioError::PartialFrame));
+        assert_eq!(
+            PcmFormat::new(48_000, 2).unwrap().duration(3),
+            Err(AudioError::PartialFrame)
+        );
     }
 }
