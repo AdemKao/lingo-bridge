@@ -15,6 +15,7 @@
 
 **[⬇ 下載 Alpha 測試版](https://github.com/AdemKao/lingo-bridge/releases)** ·
 **[快速開始](#快速開始)** ·
+**[macOS 簽署與公證](docs/macos-signing.zh-TW.md)** ·
 **[開發路線圖](docs/roadmap.md)** ·
 **[問題回報](https://github.com/AdemKao/lingo-bridge/issues)** ·
 **[更新紀錄](CHANGELOG.zh-TW.md)**
