@@ -99,3 +99,15 @@ The [Desktop preview installers workflow](https://github.com/AdemKao/lingo-bridg
 Each direction independently selects its spoken language and desired listener language. The app initially exposes Traditional Chinese, Japanese, English, Korean, French and Spanish as targets, matching supported cloud output options. Select **No translation / original audio** to relay audio without creating a translation session for that direction. If both directions are original audio, no OpenAI API Key is needed. Local/Hybrid voice translation remains disabled until offline STT and TTS exist.
 
 To test offline text translation, start Ollama locally and use the in-app Model Manager; install Qwen3 4B or TranslateGemma 4B only after reviewing model licenses. See [Local model guide](docs/local-models.md).
+
+## Offline speech experiments (opt-in)
+
+The repository now contains `crates/lingo-speech`, an offline speech **utterance segmenter** and an optional, model-dependent **sherpa-onnx** command-line smoke test for Chinese/Japanese SenseVoice STT and Japanese Supertonic TTS. No API key is required for these local tests. **These adapters are not yet connected to the LINE live-call engine.** See [offline speech setup](docs/offline-speech-poc.md).
+
+```sh
+cargo test -p lingo-speech
+cargo run -p lingo-speech --features sherpa --bin lingo-speech-smoke -- stt INPUT_16KHZ.WAV MODEL.ONNX TOKENS.TXT
+cargo run -p lingo-speech --features sherpa --bin lingo-speech-smoke -- tts-ja MODEL_DIR OUTPUT.WAV "こんにちは"
+```
+
+The Sherpa native library and model weights are separate downloads. Do not commit model weights into this repository.

@@ -9,3 +9,8 @@ target/
 .DS_Store
 Thumbs.db
 *.log
+# Keep local speech model weights out of git
+models/
+*.onnx
+*.gguf
+*.safetensors
