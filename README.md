@@ -111,3 +111,9 @@ cargo run -p lingo-speech --features sherpa --bin lingo-speech-smoke -- tts-ja M
 ```
 
 The Sherpa native library and model weights are separate downloads. Do not commit model weights into this repository.
+
+## Downloadable alpha installers
+
+The public-repository [desktop installer workflow](.github/workflows/build-desktop.yml) builds Windows x64 `.exe`, macOS Apple Silicon `.dmg` and macOS Intel `.dmg` packages using standard GitHub Actions runners. The workflow produces downloadable Actions artifacts for private tests; the optional **manual** publish mode creates a **draft pre-release**, which must be reviewed and published separately. This is a development preview, not a verified LINE calling product. [Read the release guide](docs/releasing.md).
+
+When available, public installers appear under [GitHub Releases](https://github.com/AdemKao/lingo-bridge/releases).
