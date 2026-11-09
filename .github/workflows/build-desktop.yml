@@ -27,7 +27,7 @@ on:
         description: "Must match the application version, e.g. v0.1.0-alpha.1"
         required: false
         type: string
-        default: "v0.1.0-alpha.1"
+        default: "v0.1.0-alpha.2"
 
 permissions:
   contents: read

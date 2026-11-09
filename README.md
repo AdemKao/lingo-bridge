@@ -55,7 +55,8 @@ and latency still require real-device testing.
 | Local Ollama text translation and model downloads | 🧪 Available as text preview |
 | Offline Chinese/Japanese STT (SenseVoice) | 🧪 Separate sherpa-onnx CLI experiment |
 | Offline Japanese TTS (Supertonic) | 🧪 Separate sherpa-onnx CLI experiment |
-| Offline Mandarin TTS and local live voice pipeline | ⏳ Not yet integrated |
+| Offline Mandarin Matcha TTS | 🧪 Separate WAV/CLI experiment (source only) |
+| Offline local voice calls | ⏳ Not integrated into desktop |
 | Real-world LINE compatibility, latency and echo safety | ⏳ Not yet validated |
 | Driver auto-install, signed installers and auto-update | ⏳ Not available |
 

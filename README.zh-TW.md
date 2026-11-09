@@ -54,7 +54,8 @@ LINE 實際通話的相容性與延遲仍需要真機驗證。
 | 本地 Ollama 文字翻譯、模型下載 | 🧪 文字模式可預覽 |
 | SenseVoice 中日離線 STT | 🧪 sherpa-onnx 獨立 CLI 實驗 |
 | Supertonic 日文離線 TTS | 🧪 sherpa-onnx 獨立 CLI 實驗 |
-| 中文離線 TTS、完整本地語音翻譯 | ⏳ 尚未串接 |
+| 中文 Matcha 離線 TTS | 🧪 獨立 WAV／CLI 原始碼實驗 |
+| 本地模型即時語音通話 | ⏳ 尚未接入桌面版 |
 | 真實 LINE 通話相容性、延遲與回音安全 | ⏳ 尚待驗證 |
 | 音訊驅動自動安裝、正式簽章、自動更新 | ⏳ 尚未提供 |
 
