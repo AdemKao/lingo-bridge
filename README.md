@@ -40,6 +40,7 @@ Set values in **the root `.env` file**:
 ```dotenv
 OPENAI_API_KEY=your-key-here
 OPENAI_TRANSLATION_MODEL=gpt-realtime-translate
+OPENAI_TRANSCRIPTION_MODEL=gpt-realtime-whisper
 ```
 
 `.env` is ignored by Git. **Never commit real credentials or distribute a populated `.env` with your app.** If you prefer BYOK, leave `OPENAI_API_KEY` empty and enter your own key in the desktop UI each time. BYOK overrides environment configuration and is erased from the UI after starting the call.

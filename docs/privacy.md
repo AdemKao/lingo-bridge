@@ -6,6 +6,8 @@
 2. **User BYOK**: the desktop UI accepts a key at runtime. It is passed to the native Rust worker process only on Start, used in HTTPS/WSS Authorization for OpenAI, and not saved to disk. The field is cleared after successfully starting a call. BYOK takes priority over .env.
 3. Do **not** embed a shared developer API key in an app release or ship a populated .env. Production hosted billing needs a secure backend and short-lived credentials.
 
+The developer can set `OPENAI_TRANSLATION_MODEL` and `OPENAI_TRANSCRIPTION_MODEL` in `.env` (defaults: `gpt-realtime-translate` and `gpt-realtime-whisper`).
+
 The app currently offers **one provider**: OpenAI Realtime Translation. It doesn't claim compatibility with arbitrary third-party model APIs.
 
 ## Consent and handling

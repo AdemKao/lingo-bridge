@@ -64,11 +64,13 @@ pub async fn translate(
         .await
         .context("無法連線至 OpenAI Realtime Translation（請確認 Key、權限及網路）")?;
 
+    let transcription_model = std::env::var("OPENAI_TRANSCRIPTION_MODEL")
+        .unwrap_or_else(|_| "gpt-realtime-whisper".to_owned());
     let update = json!({
         "type": "session.update",
         "session": {
             "audio": {
-                "input": { "transcription": { "model": "gpt-realtime-whisper" } },
+                "input": { "transcription": { "model": transcription_model } },
                 "output": { "language": path.output_language() }
             }
         }
