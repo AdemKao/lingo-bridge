@@ -1,32 +1,32 @@
-# Roadmap
+# Development status and remaining work
 
-## v0.1 — Bootstrap
+## Integrated functional prototype
 
-- [x] Rust workspace, language domain and audio-format primitives with tests
-- [x] Tauri 2 / React / TypeScript desktop shell
-- [x] GitHub CI: Rust tests, web build, Windows/macOS native checks
-- [x] Architecture, routing and privacy docs
-- [ ] First actual Windows/macOS dev builds and lockfiles
+- [x] Tauri 2 + React desktop UI with explicit audio input/output selection
+- [x] Rust workspace and domain tests
+- [x] Windows/macOS CPAL capture/playback adapter
+- [x] Two-way virtual-cable audio architecture (manual OS + LINE audio settings)
+- [x] OpenAI dedicated Realtime Translation WebSocket client
+- [x] 24 kHz PCM16 encode/decode, per-direction packet scheduling and resampling
+- [x] Two independent sessions and subtitle deltas
+- [x] Start/Stop and consent gate, failure status
+- [x] Short device test tone without a key
+- [x] .env developer key and runtime user-supplied BYOK, no default persistence
+- [x] GitHub CI source checks for Rust, frontend and native Windows/macOS
+- [ ] Verified **real** LINE call with a Japanese-speaking participant
+- [ ] Verified real-time **both-way** translated audio and latency on Windows + macOS
+- [ ] Publish supported device / LINE / OS version matrix
 
-## v0.2 — Native audio experiment
+## Before a public release
 
-- [ ] Enumerate audio devices and install/configure supported virtual audio cable
-- [ ] Capture LINE incoming audio via WASAPI or CoreAudio
-- [ ] Send prerecorded Japanese voice into LINE's virtual microphone input
-- [ ] Test ordinary Japanese LINE mobile recipient (no install)
-- [ ] Prevent feedback and accidental original microphone leakage
+- [ ] Windows/MSIX and macOS signed/notarized installer
+- [ ] Automated virtual audio routing assistant and permissions
+- [ ] Stable device identifiers beyond enumeration indices
+- [ ] Echo suppression / echo leakage and failure recovery tests
+- [ ] Proper bandlimited resampling and adaptive jitter buffers
+- [ ] Reconnection, connection health and model usage metrics
+- [ ] Secure OS credential vault option; current BYOK is ephemeral
+- [ ] Billing protections, test fixtures for quality and latency
+- [ ] Third-party license review for bundled virtual audio drivers
 
-## v0.3 — Translation engine
-
-- [ ] Two speech-to-speech streaming sessions (zh-TW → ja-JP, ja-JP → zh-TW)
-- [ ] Live partial/final transcripts and subtitles
-- [ ] Audio buffers, interruption handling, error recovery, latency metrics
-- [ ] Secure session credentials and consent UX
-
-## v0.4 — Pilot
-
-- [ ] Test latency, wording quality, robustness and cost in real LINE calls
-- [ ] Windows/macOS installers, signing, privacy and virtual device licensing
-- [ ] Publish a supported OS/LINE version matrix
-
-**Gate:** do not advertise native LINE compatibility until both-direction real-call tests pass.
+**Product promise gate:** native LINE call compatibility is not verified until actual end-to-end recordings/monitoring measurements with consent on both OSes succeed.

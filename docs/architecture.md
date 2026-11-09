@@ -1,31 +1,53 @@
-# Architecture
+# Technical architecture
 
-## Product requirements
+## Goal
 
-- Only the local Taiwanese/Chinese-speaking user installs software on Windows or macOS.
-- The remote Japanese participant uses ordinary LINE, without installing software.
-- Outbound audio: local Mandarin -> Japanese speech -> virtual microphone -> LINE.
-- Inbound audio: LINE Japanese speech -> Mandarin speech and translated subtitles -> local headphones.
-- **No official LINE call-audio API is available for this design.** The OS audio-device route must be tested.
+Only the Taiwanese/Chinese-speaking participant installs a Windows/macOS app. The Japanese-speaking participant uses normal LINE without software changes.
 
-## Source modules
+The LINE native call is **never modified or accessed through private LINE APIs**. We bridge its OS audio endpoints using two separately routed virtual audio cables.
 
-| Module | Purpose | Current state |
-| --- | --- | --- |
-| `lingo-core` | Typed language directions | Implemented, tests |
-| `audio-core` | PCM metadata and duration helpers | Implemented, tests |
-| Tauri Rust host | Native status IPC | Implemented |
-| React renderer | Desktop view and progress statuses | Implemented |
-| Windows WASAPI adapter | Application audio capture | Not implemented |
-| macOS CoreAudio adapter | Process audio capture | Not implemented |
-| Virtual microphone and route manager | Output translated speech to LINE | Not implemented |
-| AI realtime stream client | Two independent translation directions | Not implemented |
-| Caption renderer / audio playback | Live transcript and translated speech | Not implemented |
+## Executable audio graph
 
-Two speaker directions must have independent buffers, timestamps, translation sessions and interruption handling. Avoid replaying locally synthesized speech into the incoming capture.
+```text
+                OUTBOUND (zh -> ja)
+physical mic  --CPAL input--> resample 24k mono PCM16
+    -> OpenAI Realtime Translation session A (output ja)
+    -> 24k PCM16 speech -> resample to Cable A output rate
+    -> Cable A playback -> LINE microphone on Cable A recording
+    -> Japan LINE user hears Japanese
 
-Keep provider API credentials out of the frontend. Future providers should be isolated behind Rust interfaces, with short-lived session credentials or a backend proxy where needed. See [privacy](privacy.md).
+                 INBOUND (ja -> zh)
+Japan user speaks Japanese -> LINE Desktop speakers = Cable B playback
+    -> Cable B recording --CPAL input--> 24k mono PCM16
+    -> OpenAI Realtime Translation session B (output zh)
+    -> Chinese speech -> physical headphones (local only)
+    -> original / translated text deltas -> Tauri event -> subtitles
+```
 
-## Status
+No source audio goes straight to LINE from this app. The app does not monitor original Japanese on headphones.
 
-This is scaffolding, not a working LINE voice translator. Measure compatibility, latency, feedback, echo cancellation and permissions on real devices before making product promises.
+## Components
+
+- Rust / Tauri host: explicit device enumeration, session lifecycle, consent gate, status events.
+- CPAL 0.15: OS default WASAPI/CoreAudio input/output streams, explicit virtual endpoint selection.
+- Resampler: stateful streaming linear interpolation; model input 24kHz mono PCM16 with 200ms packets, silence preserved.
+- OpenAI dedicated Translation WebSocket: `wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate`, session output `ja` or `zh`, optional source transcription using `gpt-realtime-whisper`.
+- React: local BYOK field and settings, progress, captions, stop, 0.5-second cable test tone.
+- `.env`: local developer configuration, read by Rust and never copied into frontend assets.
+
+API specification: https://developers.openai.com/api/docs/guides/realtime-translation
+
+## Current implementation boundaries
+
+This is an *integrated prototype*, not a validated production application. OS device routing and API message wiring are coded, but cannot be verified end to end without two virtual audio cables, a valid permitted API key, a real Windows/macOS machine and a live LINE call. Tests cover the pure functions and CI compiles the native host.
+
+There is **no** automatic virtual device installation, auto capture of LINE's process audio, account system, installer signing, professional audio resampler, speaker diarization, billing backend or failover. Network failures currently end the session and require restart.
+
+## Performance and safety
+
+- Audio callbacks use bounded channels and bounded playback queues. Dropped frames under overload can degrade translations; instrument queue drops before production.
+- Output is limited to a short queue to prevent growing audio delay.
+- BYOK values go over local Tauri IPC to the Rust process; they are not written to disk by the app. A malicious local machine could still inspect process memory.
+- Incoming call audio is sent to a third-party AI provider **only** after the user checks the consent box and clicks Start.
+- Source and translation captions remain in memory, not automatically persisted.
+- Per-provider price, rate limits and access permissions are controlled by the user's API account.

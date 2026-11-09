@@ -2,7 +2,7 @@
 name = "lingo-bridge-desktop"
 version.workspace = true
 edition.workspace = true
-description = "Tauri 2 desktop host"
+description = "Tauri 2 desktop host for bilingual realtime calls"
 build = "build.rs"
 
 [lib]
@@ -15,4 +15,13 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+cpal = "0.15"
+tokio = { version = "1", features = ["rt", "time", "sync", "macros"] }
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+base64 = "0.22"
+dotenvy = "0.15"
 lingo-core = { path = "../../../crates/lingo-core" }
+audio-core = { path = "../../../crates/audio-core" }
