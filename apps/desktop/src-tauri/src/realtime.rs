@@ -14,8 +14,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, watch};
-use tokio_tungstenite::{connect_async, tungstenite::client::IntoClientRequest};
 use tokio_tungstenite::tungstenite::{http::HeaderValue, Message};
+use tokio_tungstenite::{connect_async, tungstenite::client::IntoClientRequest};
 
 #[derive(Clone, Copy)]
 pub enum Path {
@@ -71,13 +71,20 @@ pub async fn translate(
             }
         }
     });
-    socket.send(Message::Text(update.to_string().into())).await?;
+    socket
+        .send(Message::Text(update.to_string().into()))
+        .await?;
 
     // Do not append audio before server confirms the target language.
     tokio::time::timeout(Duration::from_secs(20), async {
         loop {
-            let message = socket.next().await.ok_or_else(|| anyhow!("翻譯連線中斷"))??;
-            if !message.is_text() { continue; }
+            let message = socket
+                .next()
+                .await
+                .ok_or_else(|| anyhow!("翻譯連線中斷"))??;
+            if !message.is_text() {
+                continue;
+            }
             let value: Value = serde_json::from_str(message.to_text()?)?;
             match value["type"].as_str().unwrap_or_default() {
                 "session.updated" => return Ok::<(), anyhow::Error>(()),
@@ -85,13 +92,18 @@ pub async fn translate(
                 _ => {}
             }
         }
-    }).await.context("等待翻譯設定回應逾時")??;
+    })
+    .await
+    .context("等待翻譯設定回應逾時")??;
 
     let ready = ready_count.fetch_add(1, Ordering::SeqCst) + 1;
-    let _ = app.emit("lingo-status", json!({
-        "phase": if ready == 2 { "active" } else { "connecting" },
-        "detail": if ready == 2 { "兩個翻譯方向皆已連線" } else { "其中一個翻譯方向已連線" }
-    }));
+    let _ = app.emit(
+        "lingo-status",
+        json!({
+            "phase": if ready == 2 { "active" } else { "connecting" },
+            "detail": if ready == 2 { "兩個翻譯方向皆已連線" } else { "其中一個翻譯方向已連線" }
+        }),
+    );
 
     let mut source_resampler = Resampler::new(source_rate, MODEL_RATE);
     let mut target_resampler = Resampler::new(MODEL_RATE, output_rate);
@@ -163,7 +175,9 @@ pub async fn translate(
 
 fn server_error(event: &Value) -> String {
     let code = event["error"]["code"].as_str().unwrap_or("unknown");
-    let message = event["error"]["message"].as_str().unwrap_or("Please verify API access");
+    let message = event["error"]["message"]
+        .as_str()
+        .unwrap_or("Please verify API access");
     let shortened: String = message.chars().take(220).collect();
     format!("{code}: {shortened}")
 }
@@ -180,22 +194,29 @@ fn process_event(
         "session.input_transcript.delta" | "session.output_transcript.delta" => {
             let source = event["type"] == "session.input_transcript.delta";
             if let Some(delta) = event["delta"].as_str() {
-                let _ = app.emit("lingo-caption", json!({
-                    "direction": path.as_str(),
-                    "kind": if source { "original" } else { "translated" },
-                    "delta": delta,
-                }));
+                let _ = app.emit(
+                    "lingo-caption",
+                    json!({
+                        "direction": path.as_str(),
+                        "kind": if source { "original" } else { "translated" },
+                        "delta": delta,
+                    }),
+                );
             }
         }
         "session.output_audio.delta" => {
             let encoded = event["delta"].as_str().context("音訊事件遺失資料")?;
             let bytes = STANDARD.decode(encoded).context("音訊資料編碼無效")?;
             let channels = event["channels"].as_u64().unwrap_or(1);
-            let sample_rate = event["sample_rate"].as_u64().unwrap_or(u64::from(MODEL_RATE));
+            let sample_rate = event["sample_rate"]
+                .as_u64()
+                .unwrap_or(u64::from(MODEL_RATE));
             if channels != 1 || sample_rate != u64::from(MODEL_RATE) {
                 bail!("音訊服務回傳不支援格式：{channels} channel(s), {sample_rate} Hz");
             }
-            if bytes.len() % 2 != 0 { bail!("不完整的 PCM16 音訊資料"); }
+            if bytes.len() % 2 != 0 {
+                bail!("不完整的 PCM16 音訊資料");
+            }
             let samples = resampler.convert(&from_pcm16(&bytes));
             audio::enqueue(queue, &samples, output_rate);
         }

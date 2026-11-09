@@ -48,7 +48,11 @@ pub fn list_devices() -> Result<Vec<DeviceInfo>> {
     let default_input = host.default_input_device().and_then(|d| d.name().ok());
     let default_output = host.default_output_device().and_then(|d| d.name().ok());
     let mut found = Vec::new();
-    for (index, item) in host.input_devices().context("無法列出麥克風裝置")?.enumerate() {
+    for (index, item) in host
+        .input_devices()
+        .context("無法列出麥克風裝置")?
+        .enumerate()
+    {
         let name = item.name().unwrap_or_else(|_| "Unknown input".into());
         found.push(DeviceInfo {
             id: format!("in:{index}"),
@@ -57,7 +61,11 @@ pub fn list_devices() -> Result<Vec<DeviceInfo>> {
             kind: "input",
         });
     }
-    for (index, item) in host.output_devices().context("無法列出喇叭裝置")?.enumerate() {
+    for (index, item) in host
+        .output_devices()
+        .context("無法列出喇叭裝置")?
+        .enumerate()
+    {
         let name = item.name().unwrap_or_else(|_| "Unknown output".into());
         found.push(DeviceInfo {
             id: format!("out:{index}"),
@@ -105,7 +113,9 @@ pub struct Playback {
 
 pub fn start_capture(id: &str) -> Result<Capture> {
     let device = selected(id, "in")?;
-    let supported = device.default_input_config().context("音訊輸入格式不支援")?;
+    let supported = device
+        .default_input_config()
+        .context("音訊輸入格式不支援")?;
     let config: StreamConfig = supported.config();
     let sample_rate = config.sample_rate.0;
     let (sender, receiver) = mpsc::channel::<Vec<f32>>(64);
@@ -113,16 +123,20 @@ pub fn start_capture(id: &str) -> Result<Capture> {
     let stream = match supported.sample_format() {
         SampleFormat::F32 => make_capture(&device, &config, sender, |s: f32| s)?,
         SampleFormat::I16 => make_capture(&device, &config, sender, |s: i16| s as f32 / 32768.0)?,
-        SampleFormat::U16 => {
-            make_capture(&device, &config, sender, |s: u16| (s as f32 - 32768.0) / 32768.0)?
-        }
+        SampleFormat::U16 => make_capture(&device, &config, sender, |s: u16| {
+            (s as f32 - 32768.0) / 32768.0
+        })?,
         other => bail!("目前不支援裝置輸入格式：{other:?}"),
     };
     stream.play().context("無法啟動音訊輸入")?;
-    Ok(Capture { receiver, sample_rate, _stream: stream })
+    Ok(Capture {
+        receiver,
+        sample_rate,
+        _stream: stream,
+    })
 }
 
-fn make_capture<T: cpal::SizedSample + Copy>(
+fn make_capture<T: cpal::SizedSample + Copy + Send + 'static>(
     device: &Device,
     config: &StreamConfig,
     sender: mpsc::Sender<Vec<f32>>,
@@ -132,14 +146,18 @@ fn make_capture<T: cpal::SizedSample + Copy>(
     let stream = device.build_input_stream(
         config,
         move |data: &[T], _| {
-            if channels == 0 { return; }
+            if channels == 0 {
+                return;
+            }
             let mut mono = Vec::with_capacity(data.len() / channels);
             for frame in data.chunks_exact(channels) {
                 let sum: f32 = frame.iter().map(|&sample| to_f32(sample)).sum();
                 mono.push(sum / channels as f32);
             }
             // Never block the real-time audio thread. An overloaded stream drops frames.
-            if !mono.is_empty() { let _ = sender.try_send(mono); }
+            if !mono.is_empty() {
+                let _ = sender.try_send(mono);
+            }
         },
         |error| eprintln!("Audio capture device error: {error}"),
         None,
@@ -149,7 +167,9 @@ fn make_capture<T: cpal::SizedSample + Copy>(
 
 pub fn start_playback(id: &str) -> Result<Playback> {
     let device = selected(id, "out")?;
-    let supported = device.default_output_config().context("音訊輸出格式不支援")?;
+    let supported = device
+        .default_output_config()
+        .context("音訊輸出格式不支援")?;
     let config: StreamConfig = supported.config();
     let sample_rate = config.sample_rate.0;
     let queue: PlaybackQueue = Arc::new(Mutex::new(VecDeque::with_capacity(48_000)));
@@ -164,10 +184,14 @@ pub fn start_playback(id: &str) -> Result<Playback> {
         other => bail!("目前不支援裝置輸出格式：{other:?}"),
     };
     stream.play().context("無法啟動音訊輸出")?;
-    Ok(Playback { queue, sample_rate, _stream: stream })
+    Ok(Playback {
+        queue,
+        sample_rate,
+        _stream: stream,
+    })
 }
 
-fn make_playback<T: cpal::SizedSample + Copy>(
+fn make_playback<T: cpal::SizedSample + Copy + Send + 'static>(
     device: &Device,
     config: &StreamConfig,
     queue: PlaybackQueue,
@@ -178,7 +202,10 @@ fn make_playback<T: cpal::SizedSample + Copy>(
     let stream = device.build_output_stream(
         config,
         move |data: &mut [T], _| {
-            if channels == 0 { data.fill(silence); return; }
+            if channels == 0 {
+                data.fill(silence);
+                return;
+            }
             if let Ok(mut queue) = queue.try_lock() {
                 for frame in data.chunks_mut(channels) {
                     let mono = from_f32(queue.pop_front().unwrap_or(0.0));

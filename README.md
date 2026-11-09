@@ -1,53 +1,86 @@
 # Lingo Bridge
 
-Rust-first desktop app for Chinese ↔ Japanese two-way call translation.
+**Rust-first experimental Chinese ↔ Japanese real-time call translation for Windows and macOS.**
 
-> **Status: runnable desktop scaffold, NOT a working LINE translator yet.** Native LINE audio capture, virtual microphone routing, realtime translation and captions are future milestones. Compatibility with actual LINE calls is unverified.
+The **local Chinese-speaking user alone** installs the app, while the Japanese-speaking participant uses ordinary LINE without additional software.
 
-## Product goal
+> **Status: integrated prototype, not a proven production LINE translator.** Device capture/playback and the OpenAI Realtime Translation WebSocket pipeline are implemented, but **real LINE calls have not yet been verified end to end on physical Windows and macOS machines**. LINE integration is unofficial and depends on manually configured virtual audio devices.
 
-The **Taiwan/Chinese-speaking participant alone** installs Lingo Bridge on Windows or macOS and places an ordinary **LINE Desktop** call. They speak Mandarin and the remote Japanese-speaking person hears Japanese; the remote party speaks Japanese and the local user hears Mandarin and reads translated captions. The Japanese-speaking participant installs nothing.
+## What works in code
 
-This approach would use OS audio routing outside of LINE. It is **not** an official LINE plugin, and there is no public native LINE call audio API.
+- Tauri 2 + React/TypeScript desktop interface with device picker and status.
+- Cross-platform CPAL (Windows WASAPI / macOS CoreAudio) audio input and output.
+- Two independent streaming translation sessions, Mandarin→Japanese and Japanese→Mandarin.
+- OpenAI `gpt-realtime-translate` dedicated WebSockets, 24 kHz PCM16 audio in 200 ms packets and streamed speech output.
+- Original / translated transcript deltas displayed in the app.
+- Startup/shutdown controls and bounded audio buffers.
+- **Developer `.env`** and **per-session BYOK** (user enters their own API key in the UI; no key saved to disk).
+- **Test tone** to verify LINE's virtual microphone route without an API key.
 
-## Monorepo
+## Requirements
 
-- `apps/desktop`: Tauri 2 + React + TypeScript + Vite app.
-- `apps/desktop/src-tauri`: Rust native desktop host, currently a status command only.
-- `crates/lingo-core`: typed language routes for both directions.
-- `crates/audio-core`: PCM format validation and frame-duration calculation.
-- `docs/`: architecture, audio-routing experiments, privacy and roadmap.
+- Windows 10/11 or macOS supported by Tauri 2, with Rust stable and Node.js 22.
+- [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
+- **Two separately configured virtual audio cable devices**, not one shared cable.
+  - Windows examples: VB-Audio Cable / similar independent cable instances (check commercial licensing).
+  - Mac example: separately installed/configured BlackHole instances or equivalent (requires manual routing).
+- LINE Desktop, headphones and a consenting test participant.
+- An OpenAI API account with access to `gpt-realtime-translate`; realtime translation incurs metered costs.
 
-## Prerequisites
+## Configure API access
 
-- Rust stable with Cargo
-- Node.js 20.19+ or 22.12+ and npm
-- [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) for Windows or macOS
+```sh
+git clone https://github.com/AdemKao/lingo-bridge.git
+cd lingo-bridge
+cp .env.example .env
+```
 
-## Start the desktop shell
+Set values in **the root `.env` file**:
 
-    cd apps/desktop
-    npm install
-    npm run tauri dev
+```dotenv
+OPENAI_API_KEY=your-key-here
+OPENAI_TRANSLATION_MODEL=gpt-realtime-translate
+```
 
-To preview the frontend without Rust: `npm run dev`. The native status command works only inside Tauri.
+`.env` is ignored by Git. **Never commit real credentials or distribute a populated `.env` with your app.** If you prefer BYOK, leave `OPENAI_API_KEY` empty and enter your own key in the desktop UI each time. BYOK overrides environment configuration and is erased from the UI after starting the call.
 
-## Tests
+## Start desktop development
 
-    cargo fmt --all -- --check
-    cargo test -p lingo-core -p audio-core
-    cd apps/desktop
-    npm run build
+```sh
+cd apps/desktop
+npm install
+npm run tauri dev
+```
 
-CI also checks the native Tauri host on Windows and macOS. Commit generated `Cargo.lock` and `apps/desktop/package-lock.json` after initial dependency resolution.
+`npm run dev` is web-only: native audio controls require the desktop host.
 
-## What comes next?
+## Configure LINE audio routing
 
-1. Prove capture of incoming LINE audio and routing of a Japanese prerecorded test sound via a virtual microphone.
-2. Prove isolation of source and translated audio (no feedback loops or leakage).
-3. Add two independent AI translation streams and captions, with explicit consent.
-4. Measure latency, compatibility, failure handling and cost with real calls.
+**Two separate virtual cables are mandatory.**
 
-See [architecture](docs/architecture.md), [routing experiments](docs/audio-routing.md), [roadmap](docs/roadmap.md), and [privacy](docs/privacy.md).
+| Lingo Bridge | What to choose | LINE setting |
+| --- | --- | --- |
+| ① Physical mic | Your actual microphone | Do NOT select your physical mic in LINE |
+| ② Incoming LINE audio | Recording/input endpoint of Cable B | LINE **speaker/output** = Cable B playback |
+| ③ Japanese output to LINE | Playback/output endpoint of Cable A | LINE **microphone/input** = Cable A recording |
+| ④ Mandarin headphones | Your physical headphones | No direct original LINE audio |
 
-No open-source license has been selected. Independent project; not affiliated with or endorsed by LINE or LY Corporation.
+Read [the audio routing setup guide](docs/audio-routing.md) before starting a call. Press the **0.5-second test tone** button to verify your outgoing cable first. Only start AI processing after informing both call participants and getting consent.
+
+## Run tests
+
+```sh
+cargo fmt --all -- --check
+cargo test -p lingo-core -p audio-core
+cd apps/desktop && npm run build
+```
+
+Native compilation on Windows and macOS is checked by GitHub Actions.
+
+## Architecture and limitations
+
+The app uses **OS audio device routing**, not an official LINE SDK or API. It cannot automatically intercept every LINE call or set all LINE audio devices. There is no automatic driver installer, OS credential vault, signed release installer, robust reconnection, or guaranteed translation latency yet. **Real calls and model access must be tested with your own devices and credentials.**
+
+See [architecture](docs/architecture.md), [privacy/BYOK](docs/privacy.md), [roadmap](docs/roadmap.md).
+
+Independent project, not affiliated with or endorsed by LINE or LY Corporation. No open-source license has been selected.

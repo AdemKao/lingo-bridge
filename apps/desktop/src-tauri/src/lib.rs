@@ -41,8 +41,12 @@ fn load_environment() {
 #[tauri::command]
 fn get_runtime_status(state: State<'_, AppState>) -> Result<RuntimeStatus, String> {
     load_environment();
-    let running = state.session.lock().map_err(|_| "狀態鎖定失敗")?
-        .as_ref().is_some_and(|s| s.alive.load(Ordering::SeqCst));
+    let running = state
+        .session
+        .lock()
+        .map_err(|_| "狀態鎖定失敗")?
+        .as_ref()
+        .is_some_and(|s| s.alive.load(Ordering::SeqCst));
     Ok(RuntimeStatus {
         running,
         model: configured_model(),
@@ -51,8 +55,16 @@ fn get_runtime_status(state: State<'_, AppState>) -> Result<RuntimeStatus, Strin
 }
 
 fn configured_model() -> String {
-    // The dedicated translation endpoint currently supports this model.
-    "gpt-realtime-translate".to_owned()
+    std::env::var("OPENAI_TRANSLATION_MODEL")
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| {
+            !value.is_empty()
+                && value
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+        })
+        .unwrap_or_else(|| "gpt-realtime-translate".to_owned())
 }
 
 #[tauri::command]
@@ -65,8 +77,13 @@ fn test_outbound_tone(
     state: State<'_, AppState>,
     line_outgoing_output: String,
 ) -> Result<(), String> {
-    if state.session.lock().map_err(|_| "狀態鎖定失敗")?
-        .as_ref().is_some_and(|s| s.alive.load(Ordering::SeqCst)) {
+    if state
+        .session
+        .lock()
+        .map_err(|_| "狀態鎖定失敗")?
+        .as_ref()
+        .is_some_and(|s| s.alive.load(Ordering::SeqCst))
+    {
         return Err("請先停止即時翻譯，再播放測試音".into());
     }
     audio::test_tone(&line_outgoing_output).map_err(|error| error.to_string())
@@ -95,7 +112,10 @@ fn start_translation(
     }
 
     let mut guard = state.session.lock().map_err(|_| "狀態鎖定失敗")?;
-    if guard.as_ref().is_some_and(|s| s.alive.load(Ordering::SeqCst)) {
+    if guard
+        .as_ref()
+        .is_some_and(|s| s.alive.load(Ordering::SeqCst))
+    {
         return Err("翻譯已經在執行中".into());
     }
     let (stop_tx, stop_rx) = watch::channel(false);
@@ -109,30 +129,45 @@ fn start_translation(
             let result = engine::run(app_for_worker.clone(), key, model, selection, stop_rx);
             running.store(false, Ordering::SeqCst);
             if let Err(error) = result {
-                let _ = app_for_worker.emit("lingo-error", json!({
-                    "message": format!("{error:#}").chars().take(350).collect::<String>()
-                }));
+                let _ = app_for_worker.emit(
+                    "lingo-error",
+                    json!({
+                        "message": format!("{error:#}").chars().take(350).collect::<String>()
+                    }),
+                );
             }
-            let _ = app_for_worker.emit("lingo-status", json!({
-                "phase": "stopped", "detail": "翻譯已停止，音訊裝置已釋放"
-            }));
+            let _ = app_for_worker.emit(
+                "lingo-status",
+                json!({
+                    "phase": "stopped", "detail": "翻譯已停止，音訊裝置已釋放"
+                }),
+            );
         })
         .map_err(|error| format!("無法啟動翻譯執行緒：{error}"))?;
-    *guard = Some(ActiveSession { stop: stop_tx, alive });
-    let _ = app.emit("lingo-status", json!({
-        "phase": "connecting", "detail": "正在初始化音訊裝置…"
-    }));
+    *guard = Some(ActiveSession {
+        stop: stop_tx,
+        alive,
+    });
+    let _ = app.emit(
+        "lingo-status",
+        json!({
+            "phase": "connecting", "detail": "正在初始化音訊裝置…"
+        }),
+    );
     Ok(())
 }
 
 #[tauri::command]
 fn stop_translation(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    if let Some(session) = state.session.lock().map_err(|_| "狀態鎖定失敗")?.take() {
+    if let Some(session) = state.session.lock().map_err(|_| "狀態鎖定失敗")?.as_ref() {
         let _ = session.stop.send(true);
     }
-    let _ = app.emit("lingo-status", json!({
-        "phase": "stopping", "detail": "正在結束翻譯並釋放音訊裝置…"
-    }));
+    let _ = app.emit(
+        "lingo-status",
+        json!({
+            "phase": "stopping", "detail": "正在結束翻譯並釋放音訊裝置…"
+        }),
+    );
     Ok(())
 }
 

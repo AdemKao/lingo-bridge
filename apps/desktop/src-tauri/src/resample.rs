@@ -14,7 +14,13 @@ pub struct Resampler {
 
 impl Resampler {
     pub fn new(input_rate: u32, output_rate: u32) -> Self {
-        Self { input_rate, output_rate, previous: None, last_index: 0, next_at: 0.0 }
+        Self {
+            input_rate,
+            output_rate,
+            previous: None,
+            last_index: 0,
+            next_at: 0.0,
+        }
     }
 
     pub fn convert(&mut self, input: &[f32]) -> Vec<f32> {
@@ -58,9 +64,10 @@ pub fn pcm16_bytes(samples: &[f32]) -> Vec<u8> {
 }
 
 pub fn from_pcm16(bytes: &[u8]) -> Vec<f32> {
-    bytes.chunks_exact(2).map(|b| {
-        i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0
-    }).collect()
+    bytes
+        .chunks_exact(2)
+        .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0)
+        .collect()
 }
 
 #[cfg(test)]
@@ -87,6 +94,9 @@ mod tests {
         let values = vec![-0.5, 0.0, 0.5];
         let decoded = from_pcm16(&pcm16_bytes(&values));
         assert_eq!(decoded.len(), values.len());
-        assert!(decoded.iter().zip(values).all(|(a, b)| (a - b).abs() < 0.001));
+        assert!(decoded
+            .iter()
+            .zip(values)
+            .all(|(a, b)| (a - b).abs() < 0.001));
     }
 }
