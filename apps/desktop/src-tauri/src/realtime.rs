@@ -53,7 +53,9 @@ pub async fn translate(
     mut stop: watch::Receiver<bool>,
 ) -> Result<()> {
     let url = format!("wss://api.openai.com/v1/realtime/translations?model={model}");
-    let mut request = url.into_client_request().context("無法建立翻譯 WebSocket")?;
+    let mut request = url
+        .into_client_request()
+        .context("無法建立翻譯 WebSocket")?;
     request.headers_mut().insert(
         "Authorization",
         HeaderValue::from_str(&format!("Bearer {key}")).context("無效 API Key 格式")?,
