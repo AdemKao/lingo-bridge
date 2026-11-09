@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible defect (do not upload private call recordings or API keys)
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Never post API keys, private audio, phone numbers or transcripts.
+        Build success is different from verified live LINE call functionality.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include clear steps and expected vs actual result.
+      placeholder: "How to reproduce, expected result, actual result"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Platform
+      options:
+        - Windows x64
+        - macOS Apple Silicon
+        - macOS Intel
+        - Other / not applicable
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Lingo Bridge version
+      placeholder: "e.g. 0.1.0-alpha.1"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS version, LINE version, virtual audio devices, model/provider if relevant (no secrets).
+  - type: textarea
+    id: tests
+    attributes:
+      label: What did you verify?
+      description: Separate compilation, test tone, cloud connection, and genuine two-way call results.
