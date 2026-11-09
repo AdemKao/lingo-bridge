@@ -8,18 +8,17 @@ jobs:
   version-consistency:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-        package-manager-cache: false
       - name: Confirm matching versions and release notes
         run: node .github/scripts/check-version.mjs
 
   rust-core:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -31,11 +30,10 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-        package-manager-cache: false
       - name: Install
         working-directory: apps/desktop
         run: npm install --no-audit --no-fund
@@ -46,7 +44,7 @@ jobs:
   native-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check Tauri Rust
         run: cargo check -p lingo-bridge-desktop
@@ -54,7 +52,7 @@ jobs:
   native-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check Tauri Rust
         run: cargo check -p lingo-bridge-desktop
@@ -67,7 +65,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check optional offline STT and TTS adapters
         run: cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
