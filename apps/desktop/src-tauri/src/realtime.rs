@@ -7,6 +7,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use futures_util::{SinkExt, StreamExt};
+use lingo_core::Language;
 use serde_json::{json, Value};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -30,12 +31,6 @@ impl Path {
             Self::Inbound => "inbound",
         }
     }
-    fn output_language(self) -> &'static str {
-        match self {
-            Self::Outbound => "ja",
-            Self::Inbound => "zh",
-        }
-    }
 }
 
 /// A separate session is required for each direction of the call.
@@ -51,6 +46,7 @@ pub async fn translate(
     app: AppHandle,
     ready_count: Arc<AtomicUsize>,
     mut stop: watch::Receiver<bool>,
+    output_language: Language,
 ) -> Result<()> {
     let url = format!("wss://api.openai.com/v1/realtime/translations?model={model}");
     let mut request = url
@@ -71,7 +67,7 @@ pub async fn translate(
         "session": {
             "audio": {
                 "input": { "transcription": { "model": transcription_model } },
-                "output": { "language": path.output_language() }
+                "output": { "language": output_language.output_code() }
             }
         }
     });

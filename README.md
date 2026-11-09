@@ -1,5 +1,7 @@
 # Lingo Bridge
 
+> **2026-11 language/local phase:** The desktop app now includes independent outbound/inbound language selectors with a **No translation / original audio** option, plus local Ollama text translation and opt-in model download. Offline STT/TTS and actual local voice interpretation are **not implemented yet**. See [Local model guide](docs/local-models.md) and [Issue #1](https://github.com/AdemKao/lingo-bridge/issues/1).
+
 **Rust-first experimental Chinese ↔ Japanese real-time call translation for Windows and macOS.**
 
 The **local Chinese-speaking user alone** installs the app, while the Japanese-speaking participant uses ordinary LINE without additional software.
@@ -91,3 +93,9 @@ Independent project, not affiliated with or endorsed by LINE or LY Corporation. 
 After generating icons, local preview installers can also be built using `npm run tauri -- build --config src-tauri/tauri.bundle.conf.json` from `apps/desktop`.
 
 The [Desktop preview installers workflow](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml) provides a **manual** GitHub Actions build for Windows NSIS and a macOS app archive. Trigger it from Actions → Run workflow. These are **unsigned developer builds** for testing, not production releases. Virtual audio drivers are **not bundled**; on macOS, unsigned/unnotarized apps may require platform trust or signing before they can run. Production releases require signing, driver licensing checks and real-call verification.
+
+## Language routing
+
+Each direction independently selects its spoken language and desired listener language. The app initially exposes Traditional Chinese, Japanese, English, Korean, French and Spanish as targets, matching supported cloud output options. Select **No translation / original audio** to relay audio without creating a translation session for that direction. If both directions are original audio, no OpenAI API Key is needed. Local/Hybrid voice translation remains disabled until offline STT and TTS exist.
+
+To test offline text translation, start Ollama locally and use the in-app Model Manager; install Qwen3 4B or TranslateGemma 4B only after reviewing model licenses. See [Local model guide](docs/local-models.md).

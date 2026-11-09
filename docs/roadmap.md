@@ -30,3 +30,17 @@
 - [ ] Third-party license review for bundled virtual audio drivers
 
 **Product promise gate:** native LINE call compatibility is not verified until actual end-to-end recordings/monitoring measurements with consent on both OSes succeed.
+
+## Issue #1 — Local / Hybrid and flexible languages
+
+- [x] Independently configurable source and target for outbound/inbound voice paths (zh/ja/en/ko/fr/es)
+- [x] Per-direction original-audio passthrough; zero AI sessions when both bypass translation
+- [x] Provider mode selection and explicit unsupported mode validation
+- [x] Local Ollama service inventory, curated model catalog, explicit pull/delete operations
+- [x] Local Ollama text translation preview without cloud credentials
+- [ ] True offline STT + TTS for Chinese and Japanese voice calls
+- [ ] Hybrid provider combination for end-to-end real-time calls
+- [ ] Real hardware / LINE validation, latency and privacy verification
+- [ ] Full STT/TTS model management, integrity hashes and license audits
+
+Progress and acceptance criteria: https://github.com/AdemKao/lingo-bridge/issues/1

@@ -51,3 +51,9 @@ There is **no** automatic virtual device installation, auto capture of LINE's pr
 - Incoming call audio is sent to a third-party AI provider **only** after the user checks the consent box and clicks Start.
 - Source and translation captions remain in memory, not automatically persisted.
 - Per-provider price, rate limits and access permissions are controlled by the user's API account.
+
+## Flexible language routing and local provider (Issue #1)
+
+The `lingo-core` crate now defines `CallLanguageSettings` with independent `AudioDirection { source, target }`. `target: None` (and a target equal to the source) means local passthrough; the engine sends sample-rate-converted original audio through the existing audio router without starting a model session. For cloud translated routes, the OpenAI Realtime session output language is chosen at runtime rather than hardcoded to Japanese or Chinese. Initial UI choices are zh/ja/en/ko/fr/es.
+
+The `local.rs` Ollama adapter supports installing curated text models, checking installation, removing a model with explicit confirmation, and local TEXT translation previews. It is explicitly **not a speech STT/TTS replacement**. In Local or Hybrid mode with translated audio, the start command returns a clear error instead of silently using cloud AI. The local-only text API is fixed to 127.0.0.1 for privacy. See [local-models](local-models.md).

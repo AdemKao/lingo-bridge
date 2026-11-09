@@ -6,26 +6,51 @@ import "./styles.css";
 type Device = { id: string; name: string; kind: "input" | "output"; isDefault: boolean };
 type Status = { running: boolean; model: string; hasEnvKey: boolean };
 type Phase = "idle" | "connecting" | "active" | "stopping" | "stopped";
+type Engine = "cloud" | "local" | "hybrid";
+type Locale = "zh" | "ja" | "en" | "ko" | "fr" | "es";
+type Target = Locale | "original";
+type Direction = { source: Locale; target: Target };
+type Languages = { outbound: Direction; inbound: Direction };
 type Selection = {
   microphoneInput: string;
   lineIncomingInput: string;
   lineOutgoingOutput: string;
   headphonesOutput: string;
 };
-type StreamDirection = "outbound" | "inbound";
-type CaptionKind = "original" | "translated";
-type CaptionPayload = { direction: StreamDirection; kind: CaptionKind; delta: string };
+type Caption = "original" | "translated";
+type EventDirection = "inbound" | "outbound";
+type CaptionPayload = { direction: EventDirection; kind: Caption; delta: string };
 type StatusPayload = { phase: Phase; detail: string };
-type ErrorPayload = { message: string };
-
-const initialSelection: Selection = {
-  microphoneInput: "",
-  lineIncomingInput: "",
-  lineOutgoingOutput: "",
-  headphonesOutput: "",
+type ModelInfo = {
+  id: string;
+  name: string;
+  sizeNote: string;
+  sourceUrl: string;
+  licenseUrl: string;
+  installed: boolean;
 };
+type LocalStatus = { available: boolean; message: string; models: ModelInfo[] };
+type ModelProgress = { model: string; status: string; percent: number | null };
 
-const trimSubtitle = (value: string) => value.slice(-1200);
+const locales: Array<{ id: Locale; label: string }> = [
+  { id: "zh", label: "中文（繁體）" },
+  { id: "ja", label: "日本語" },
+  { id: "en", label: "English" },
+  { id: "ko", label: "한국어" },
+  { id: "fr", label: "Français" },
+  { id: "es", label: "Español" },
+];
+const initialDevices: Selection = {
+  microphoneInput: "", lineIncomingInput: "", lineOutgoingOutput: "", headphonesOutput: "",
+};
+const initialLanguages: Languages = {
+  outbound: { source: "zh", target: "ja" },
+  inbound: { source: "ja", target: "zh" },
+};
+const needsTranslation = (d: Direction) => d.target !== "original" && d.target !== d.source;
+const actualTarget = (d: Direction) => needsTranslation(d) ? d.target : null;
+const displayRoute = (d: Direction) =>
+  needsTranslation(d) ? locales.find((l) => l.id === d.target)?.label : "不翻譯（原音）";
 
 function DevicePicker({
   title, help, devices, kind, value, onChange, disabled,
@@ -33,76 +58,115 @@ function DevicePicker({
   title: string; help: string; devices: Device[]; kind: Device["kind"];
   value: string; onChange: (id: string) => void; disabled: boolean;
 }) {
-  return (
-    <label className="device-field">
-      <span className="device-title">{title}</span>
-      <small>{help}</small>
-      <select disabled={disabled} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">選擇{kind === "input" ? "輸入" : "輸出"}裝置…</option>
-        {devices.filter((device) => device.kind === kind).map((device) => (
-          <option key={device.id} value={device.id}>
-            {device.name}{device.isDefault ? " · 系統預設" : ""}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <label className="device-field">
+    <span className="device-title">{title}</span><small>{help}</small>
+    <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+      <option value="">選擇{kind === "input" ? "輸入" : "輸出"}裝置…</option>
+      {devices.filter((d) => d.kind === kind).map((d) =>
+        <option key={d.id} value={d.id}>{d.name}{d.isDefault ? " · 系統預設" : ""}</option>)}
+    </select>
+  </label>;
+}
+
+function DirectionPicker({
+  title, help, route, onChange, disabled,
+}: {
+  title: string; help: string; route: Direction; onChange: (value: Direction) => void; disabled: boolean;
+}) {
+  return <div className="route-editor">
+    <h3>{title}</h3><p className="hint">{help}</p>
+    <div className="route-inputs">
+      <label className="device-field">
+        <span className="device-title">說話語言</span>
+        <select value={route.source} disabled={disabled}
+          onChange={(event) => onChange({ ...route, source: event.target.value as Locale })}>
+          {locales.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+      </label>
+      <label className="device-field">
+        <span className="device-title">對方／自己聽到</span>
+        <select value={route.target} disabled={disabled}
+          onChange={(event) => onChange({ ...route, target: event.target.value as Target })}>
+          <option value="original">不翻譯（傳送原音）</option>
+          {locales.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
+      </label>
+    </div>
+    <div className="route-note">{needsTranslation(route) ? "AI 翻譯為：" + displayRoute(route) : "此方向不會呼叫 AI，會直接傳送原始語音。"}</div>
+  </div>;
 }
 
 function SubtitleCard({ title, original, translated }: {
   title: string; original: string; translated: string;
 }) {
-  return (
-    <article className="subtitle-card">
-      <h3>{title}</h3>
-      <div className="subtitle-line"><span>原文</span><p>{original || "尚無語音字幕"}</p></div>
-      <div className="subtitle-line translated"><span>翻譯</span><p>{translated || "等待翻譯結果…"}</p></div>
-    </article>
-  );
+  return <article className="subtitle-card">
+    <h3>{title}</h3>
+    <div className="subtitle-line"><span>辨識原文</span><p>{original || "尚無語音字幕"}</p></div>
+    <div className="subtitle-line translated">
+      <span>翻譯字幕</span><p>{translated || "等待翻譯結果…"}</p>
+    </div>
+  </article>;
 }
 
 export default function App() {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [selection, setSelection] = useState<Selection>(initialSelection);
+  const [selection, setSelection] = useState<Selection>(initialDevices);
+  const [languages, setLanguages] = useState<Languages>(initialLanguages);
   const [status, setStatus] = useState<Status | null>(null);
+  const [engine, setEngine] = useState<Engine>("cloud");
   const [phase, setPhase] = useState<Phase>("idle");
   const [detail, setDetail] = useState("尚未開始");
   const [error, setError] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [subtitles, setSubtitles] = useState<Record<StreamDirection, Record<CaptionKind, string>>>({
+  const [subtitles, setSubtitles] = useState<Record<EventDirection, Record<Caption, string>>>({
     outbound: { original: "", translated: "" },
     inbound: { original: "", translated: "" },
   });
+  const [localStatus, setLocalStatus] = useState<LocalStatus | null>(null);
+  const [modelBusy, setModelBusy] = useState(false);
+  const [modelMessage, setModelMessage] = useState("");
+  const [modelProgress, setModelProgress] = useState<ModelProgress | null>(null);
+  const [previewModel, setPreviewModel] = useState("qwen3:4b");
+  const [previewSource, setPreviewSource] = useState<Locale>("zh");
+  const [previewTarget, setPreviewTarget] = useState<Locale>("ja");
+  const [previewText, setPreviewText] = useState("你好，明天方便開會嗎？");
+  const [previewResult, setPreviewResult] = useState("");
 
   const refresh = useCallback(async () => {
     try {
-      const [audioDevices, runtime] = await Promise.all([
+      const [result, runtime] = await Promise.all([
         invoke<Device[]>("list_audio_devices"),
         invoke<Status>("get_runtime_status"),
       ]);
-      setDevices(audioDevices);
+      setDevices(result);
       setStatus(runtime);
       setPhase(runtime.running ? "active" : "idle");
-      setError("");
       setSelection((previous) => ({
         ...previous,
         microphoneInput: previous.microphoneInput ||
-          audioDevices.find((device) => device.kind === "input" && device.isDefault)?.id || "",
+          result.find((d) => d.kind === "input" && d.isDefault)?.id || "",
         headphonesOutput: previous.headphonesOutput ||
-          audioDevices.find((device) => device.kind === "output" && device.isDefault)?.id || "",
+          result.find((d) => d.kind === "output" && d.isDefault)?.id || "",
       }));
     } catch (reason) {
-      setError("無法讀取原生音訊裝置。請以 Tauri 桌面模式啟動；" + String(reason));
+      setError("無法讀取原生音訊裝置。請使用 Tauri 桌面模式：" + String(reason));
     }
   }, []);
-
-  useEffect(() => { void refresh(); }, [refresh]);
-
+  const refreshModels = useCallback(async () => {
+    try {
+      const result = await invoke<LocalStatus>("get_local_model_status");
+      setLocalStatus(result);
+      setModelMessage(result.message);
+    } catch (reason) {
+      setModelMessage(String(reason));
+    }
+  }, []);
+  useEffect(() => { void refresh(); void refreshModels(); }, [refresh, refreshModels]);
   useEffect(() => {
     let alive = true;
-    const subscriptions: Array<() => void> = [];
+    const unlisteners: Array<() => void> = [];
     Promise.all([
       listen<StatusPayload>("lingo-status", (event) => {
         if (!alive) return;
@@ -110,43 +174,49 @@ export default function App() {
         setDetail(event.payload.detail);
         if (event.payload.phase === "stopped") setBusy(false);
       }),
-      listen<ErrorPayload>("lingo-error", (event) => {
+      listen<{ message: string }>("lingo-error", (event) => {
         if (alive) setError(event.payload.message);
       }),
       listen<CaptionPayload>("lingo-caption", (event) => {
         if (!alive) return;
         const { direction, kind, delta } = event.payload;
-        if ((direction !== "inbound" && direction !== "outbound") ||
+        if ((direction !== "outbound" && direction !== "inbound") ||
             (kind !== "original" && kind !== "translated")) return;
         setSubtitles((current) => ({
           ...current,
           [direction]: {
             ...current[direction],
-            [kind]: trimSubtitle(current[direction][kind] + delta),
+            [kind]: (current[direction][kind] + delta).slice(-1200),
           },
         }));
       }),
-    ]).then((unlisteners) => {
-      if (alive) subscriptions.push(...unlisteners);
-      else unlisteners.forEach((unsubscribe) => unsubscribe());
+      listen<ModelProgress>("lingo-model-progress", (event) => {
+        if (alive) setModelProgress(event.payload);
+      }),
+    ]).then((subs) => {
+      if (alive) unlisteners.push(...subs);
+      else subs.forEach((sub) => sub());
     }).catch(() => {});
-    return () => {
-      alive = false;
-      subscriptions.forEach((unsubscribe) => unsubscribe());
-    };
+    return () => { alive = false; unlisteners.forEach((sub) => sub()); };
   }, []);
 
-  const setDevice = (key: keyof Selection) => (id: string) =>
-    setSelection((current) => ({ ...current, [key]: id }));
-
-  const selectionsValid = useMemo(() =>
+  const inCall = phase === "connecting" || phase === "active" || phase === "stopping";
+  const selectedOkay = useMemo(() =>
     Object.values(selection).every(Boolean) &&
     selection.microphoneInput !== selection.lineIncomingInput &&
     selection.lineOutgoingOutput !== selection.headphonesOutput,
     [selection],
   );
-  const inCall = phase === "connecting" || phase === "active" || phase === "stopping";
-  const ready = selectionsValid && consent && (status?.hasEnvKey || apiKey.trim()) && !inCall && !busy;
+  const needsAi = needsTranslation(languages.outbound) || needsTranslation(languages.inbound);
+  const unsupportedVoiceEngine = needsAi && engine !== "cloud";
+  const hasKey = Boolean(status?.hasEnvKey || apiKey.trim());
+  const ready = selectedOkay && consent && !inCall && !busy &&
+    !unsupportedVoiceEngine && (!needsAi || hasKey);
+
+  const updateDevice = (key: keyof Selection) => (value: string) =>
+    setSelection((current) => ({ ...current, [key]: value }));
+  const updateRoute = (key: keyof Languages) => (route: Direction) =>
+    setLanguages((current) => ({ ...current, [key]: route }));
 
   async function start() {
     setError("");
@@ -157,11 +227,18 @@ export default function App() {
     });
     try {
       await invoke("start_translation", {
-        selection, apiKey: apiKey.trim() || null, consentConfirmed: consent,
+        selection,
+        languages: {
+          outbound: { source: languages.outbound.source, target: actualTarget(languages.outbound) },
+          inbound: { source: languages.inbound.source, target: actualTarget(languages.inbound) },
+        },
+        engineMode: engine,
+        apiKey: needsAi ? apiKey.trim() || null : null,
+        consentConfirmed: consent,
       });
-      setApiKey(""); // BYOK remains in native worker memory only for this session.
+      setApiKey("");
       setPhase("connecting");
-      setDetail("正在初始化音訊裝置…");
+      setDetail("正在初始化音訊路由…");
     } catch (reason) {
       setError(String(reason));
       setPhase("idle");
@@ -169,7 +246,6 @@ export default function App() {
       setBusy(false);
     }
   }
-
   async function stop() {
     setBusy(true);
     try {
@@ -180,13 +256,12 @@ export default function App() {
       setBusy(false);
     }
   }
-
-  async function playTestTone() {
+  async function testTone() {
     setBusy(true);
     setError("");
     try {
       await invoke("test_outbound_tone", { lineOutgoingOutput: selection.lineOutgoingOutput });
-      setDetail("測試音已送到 LINE 虛擬麥克風輸出裝置；請向對方確認是否聽見。");
+      setDetail("測試音已送到虛擬麥克風；請向 LINE 通話對方確認。");
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -194,89 +269,193 @@ export default function App() {
     }
   }
 
-  return (
-    <main className="page">
-      <header className="topbar">
-        <div className="brand"><span className="brand-icon" aria-hidden="true">◎</span>
-          <div><strong>Lingo Bridge</strong><small>雙向 AI 語音口譯 · Windows / macOS</small></div>
-        </div>
-        <span className="version-pill">Rust + Tauri 2</span>
-      </header>
+  async function installModel(model: ModelInfo) {
+    if (!window.confirm("下載 " + model.name + " (" + model.sizeNote + ")？\n請先閱讀授權條款：" + model.licenseUrl + "\n下載後將儲存在 Ollama 的本地模型目錄。")) return;
+    setModelBusy(true);
+    setModelProgress({ model: model.id, status: "準備下載", percent: null });
+    try {
+      await invoke("download_local_model", { model: model.id, confirmed: true });
+      setModelMessage(model.name + " 安裝完成");
+      await refreshModels();
+    } catch (reason) {
+      setModelMessage("下載失敗：" + String(reason));
+    } finally {
+      setModelBusy(false);
+      setModelProgress(null);
+    }
+  }
+  async function removeModel(model: ModelInfo) {
+    if (!window.confirm("確定刪除已安裝的 " + model.name + "？這也可能影響其他使用 Ollama 的程式。")) return;
+    setModelBusy(true);
+    try {
+      await invoke("delete_local_model", { model: model.id, confirmed: true });
+      setModelMessage(model.name + " 已刪除");
+      await refreshModels();
+    } catch (reason) {
+      setModelMessage("刪除失敗：" + String(reason));
+    } finally {
+      setModelBusy(false);
+    }
+  }
+  async function previewTranslation() {
+    setModelBusy(true);
+    setPreviewResult("");
+    try {
+      const result = await invoke<string>("translate_local_text", {
+        model: previewModel, source: previewSource, target: previewTarget, text: previewText,
+      });
+      setPreviewResult(result);
+    } catch (reason) {
+      setPreviewResult("本地翻譯未完成：" + String(reason));
+    } finally {
+      setModelBusy(false);
+    }
+  }
 
-      <section className="hero">
-        <span className="eyebrow">CHINESE ↔ JAPANESE · LIVE INTERPRETER</span>
-        <h1>你說中文，<br /><span>讓對方聽見日文。</span></h1>
-        <p>日本端不用安裝任何程式，繼續接聽普通 LINE 通話。你這邊安裝 Lingo Bridge，並設定兩組虛擬音訊線路，讓 AI 在中間處理聲音。</p>
-        <div className="status-line">
-          <span className={phase === "active" ? "live-dot active" : "live-dot"} />
-          <strong>{phase === "active" ? "翻譯中" : phase === "connecting" ? "連線中" : phase === "stopping" ? "停止中" : "未啟用翻譯"}</strong>
-          <span>{detail}</span>
-        </div>
-      </section>
-
-      {error && <div className="error" role="alert">{error}</div>}
-
-      <div className="layout">
-        <section className="card">
-          <div className="card-head">
-            <div><span className="eyebrow">01 · AUDIO ROUTING</span><h2>裝置設定</h2></div>
-            <button className="secondary compact" type="button" onClick={() => void refresh()} disabled={inCall || busy}>重新整理</button>
-          </div>
-          <p className="hint">需要兩組彼此隔離的虛擬音訊 Cable，避免把對方的日文或你的中文原音重複送入翻譯。</p>
-          <div className="devices">
-            <DevicePicker title="① 我的實體麥克風" help="你講中文的來源" kind="input" devices={devices} value={selection.microphoneInput} disabled={inCall} onChange={setDevice("microphoneInput")} />
-            <DevicePicker title="② LINE 接收音訊（Cable B）" help="LINE 揚聲器設為 Cable B 的播放端；這裡選 Cable B 的錄音端" kind="input" devices={devices} value={selection.lineIncomingInput} disabled={inCall} onChange={setDevice("lineIncomingInput")} />
-            <DevicePicker title="③ 送出日文到 LINE（Cable A）" help="這裡選 Cable A 的播放端；LINE 麥克風選 Cable A 的錄音端" kind="output" devices={devices} value={selection.lineOutgoingOutput} disabled={inCall} onChange={setDevice("lineOutgoingOutput")} />
-            <DevicePicker title="④ 我的耳機" help="翻譯後的中文語音，只在你的耳機播放" kind="output" devices={devices} value={selection.headphonesOutput} disabled={inCall} onChange={setDevice("headphonesOutput")} />
-          </div>
-          <div className="test-panel">
-            <div><strong>LINE 音訊路由測試</strong><small>先用原生 LINE 通話，確認日本端能聽見測試音。此按鈕不會錄音或使用 API。</small></div>
-            <button className="secondary" type="button" disabled={!selection.lineOutgoingOutput || inCall || busy} onClick={() => void playTestTone()}>播放 0.5 秒測試音</button>
-          </div>
-        </section>
-
-        <section className="card">
-          <span className="eyebrow">02 · MODEL & CREDENTIALS</span><h2>翻譯服務設定</h2>
-          <div className="provider"><div><strong>OpenAI Realtime Translation</strong><small>{status?.model || "gpt-realtime-translate"}</small></div><span>雙向語音 + 字幕</span></div>
-          <label className="device-field key-field">
-            <span className="device-title">OpenAI API Key（BYOK）</span>
-            <small>只在本次通話期間由 Rust 在記憶體中使用；預設不儲存。</small>
-            <input type="password" autoComplete="off" spellCheck={false} placeholder={status?.hasEnvKey ? "已偵測到 .env，可留空" : "sk-... 輸入自己的 Key"} value={apiKey} disabled={inCall} onChange={(event) => setApiKey(event.target.value)} />
-          </label>
-          <p className="hint">開發者也可以在 Repo 根目錄的 <code>.env</code> 設定 <code>OPENAI_API_KEY</code>；使用者輸入的 Key 會優先使用，並且不寫入檔案。</p>
-          <div className="flow">
-            <div><span>本機麥克風</span><strong>中文 → 日文</strong><small>→ LINE 的虛擬麥克風</small></div>
-            <div><span>LINE 對方音訊</span><strong>日文 → 中文</strong><small>→ 本機耳機與字幕</small></div>
-          </div>
-          <label className="consent">
-            <input type="checkbox" checked={consent} disabled={inCall} onChange={(event) => setConsent(event.target.checked)} />
-            <span>我確認通話雙方都知悉並同意：聲音將透過網路送往 AI 翻譯服務處理，可能產生 API 費用。</span>
-          </label>
-          <div className="controls">
-            {inCall ? (
-              <button className="danger" type="button" disabled={busy || phase === "stopping"} onClick={() => void stop()}>停止翻譯</button>
-            ) : (
-              <button className="primary" type="button" disabled={!ready} onClick={() => void start()}>開始雙向即時翻譯</button>
-            )}
-          </div>
-          {!selectionsValid && <p className="notice">請先選擇四個音訊端點，並確保輸入／輸出的裝置各自獨立。</p>}
-          <p className="disclaimer">不會自動設定 LINE 音訊裝置。第一版需手動在 LINE 桌面版選擇 Cable A 麥克風及 Cable B 揚聲器；與 LINE 的實際相容性需要真機測試。</p>
-        </section>
+  return <main className="page">
+    <header className="topbar">
+      <div className="brand"><span className="brand-icon" aria-hidden="true">◎</span>
+        <div><strong>Lingo Bridge</strong><small>多語言語音口譯 · Windows / macOS</small></div></div>
+      <span className="version-pill">Rust + Tauri 2</span>
+    </header>
+    <section className="hero">
+      <span className="eyebrow">BIDIRECTIONAL INTERPRETER · LANGUAGE ROUTING</span>
+      <h1>說自己的語言，<br /><span>讓對方聽見想聽的語言。</span></h1>
+      <p>每個通話方向都可以獨立選擇語言，或選擇不翻譯。LINE 使用原本的原生通話，只有本機端需要設定音訊路由。</p>
+      <div className="status-line">
+        <span className={phase === "active" ? "live-dot active" : "live-dot"} />
+        <strong>{phase === "active" ? "音訊處理中" : inCall ? "連線／停止中" : "尚未啟動"}</strong>
+        <span>{detail}</span>
       </div>
-
-      <section className="caption-section">
-        <div className="card-head"><div><span className="eyebrow">03 · LIVE SUBTITLES</span><h2>雙向即時字幕</h2></div>
-          <button className="secondary compact" type="button" onClick={() => setSubtitles({
-            outbound: { original: "", translated: "" },
-            inbound: { original: "", translated: "" },
-          })}>清除字幕</button>
+    </section>
+    {error && <div className="error" role="alert">{error}</div>}
+    <div className="layout">
+      <section className="card">
+        <div className="card-head"><div><span className="eyebrow">01 · LANGUAGE ROUTING</span><h2>雙向語言設定</h2></div></div>
+        <DirectionPicker title="你 → 對方" help="你說的語言、希望對方聽到的語言" route={languages.outbound} onChange={updateRoute("outbound")} disabled={inCall} />
+        <DirectionPicker title="對方 → 你" help="對方說的語言、你希望聽到的語言" route={languages.inbound} onChange={updateRoute("inbound")} disabled={inCall} />
+        <p className="hint">同語言或選擇「不翻譯」，都會傳送原音，不呼叫翻譯模型。變更語言前需要先停止目前的通話翻譯。</p>
+      </section>
+      <section className="card">
+        <div className="card-head"><div><span className="eyebrow">02 · AUDIO DEVICES</span><h2>LINE 音訊路由</h2></div>
+          <button className="secondary compact" disabled={inCall || busy} onClick={() => void refresh()}>重新整理</button></div>
+        <p className="hint">建議兩條獨立的虛擬音訊 Cable。Cable A 送聲音給 LINE；Cable B 取回 LINE 對方的聲音。</p>
+        <div className="devices">
+          <DevicePicker title="① 我的實體麥克風" help="本機說話來源" devices={devices} kind="input" value={selection.microphoneInput} disabled={inCall} onChange={updateDevice("microphoneInput")} />
+          <DevicePicker title="② LINE 接收音訊（Cable B）" help="LINE 喇叭設 Cable B 播放端；此處選錄音端" devices={devices} kind="input" value={selection.lineIncomingInput} disabled={inCall} onChange={updateDevice("lineIncomingInput")} />
+          <DevicePicker title="③ 送聲音到 LINE（Cable A）" help="LINE 麥克風設 Cable A 錄音端；此處選播放端" devices={devices} kind="output" value={selection.lineOutgoingOutput} disabled={inCall} onChange={updateDevice("lineOutgoingOutput")} />
+          <DevicePicker title="④ 我的耳機" help="只在本機播放對方的聲音或翻譯聲" devices={devices} kind="output" value={selection.headphonesOutput} disabled={inCall} onChange={updateDevice("headphonesOutput")} />
         </div>
-        <div className="caption-grid">
-          <SubtitleCard title="你 → 日本對方" original={subtitles.outbound.original} translated={subtitles.outbound.translated} />
-          <SubtitleCard title="日本對方 → 你" original={subtitles.inbound.original} translated={subtitles.inbound.translated} />
+        <div className="test-panel">
+          <div><strong>無 API 的音訊測試</strong><small>先在 LINE 原生通話中確認對方能聽見測試音。</small></div>
+          <button className="secondary" disabled={!selection.lineOutgoingOutput || inCall || busy} onClick={() => void testTone()}>播放 0.5 秒測試音</button>
         </div>
       </section>
-      <footer>原生 LINE 通話整合屬於非官方 OS 音訊路由。請使用耳機、取得雙方同意並確認當地通話錄音與資料處理規範。本軟體不隸屬 LINE。</footer>
-    </main>
-  );
+    </div>
+
+    <section className="card engine-section">
+      <span className="eyebrow">03 · AI ENGINE</span><h2>翻譯引擎</h2>
+      <div className="engine-options" role="group" aria-label="選擇 AI 模式">
+        {([
+          ["cloud", "Cloud 雲端", "OpenAI BYOK · 即時語音"],
+          ["local", "Local 本地", "Ollama 文字翻譯預覽"],
+          ["hybrid", "Hybrid 混合", "語音整合仍在開發"],
+        ] as const).map(([value, label, note]) =>
+          <button key={value} type="button" className={"engine-choice " + (engine === value ? "selected" : "")}
+            disabled={inCall} onClick={() => setEngine(value)}>
+            <strong>{label}</strong><small>{note}</small>
+          </button>)}
+      </div>
+      {engine === "cloud" && <div className="key-area">
+        <label className="device-field key-field">
+          <span className="device-title">OpenAI API Key（BYOK）</span>
+          <small>翻譯方向啟用時才會使用金鑰；使用者的 Key 不儲存。</small>
+          <input type="password" autoComplete="off" spellCheck={false} value={apiKey}
+            disabled={inCall} placeholder={status?.hasEnvKey ? "已偵測到 .env，可留空" : "sk-..."}
+            onChange={(e) => setApiKey(e.target.value)} />
+        </label>
+        <p className="hint">亦可用專案根目錄 .env 設定 OPENAI_API_KEY。若兩個方向都不翻譯，不需要 API Key，也不會呼叫 OpenAI。</p>
+      </div>}
+      {(engine === "local" || engine === "hybrid") && <p className="notice">
+        本地引擎目前只開放「文字翻譯預覽」與模型管理；離線 STT/TTS 尚未接通通話，因此有翻譯需求時不能啟動本地語音翻譯。原音直通仍可使用。
+      </p>}
+      <label className="consent">
+        <input type="checkbox" checked={consent} disabled={inCall} onChange={(e) => setConsent(e.target.checked)} />
+        <span>我已告知通話雙方音訊將經過本機處理；選擇雲端翻譯時，雙方也同意聲音送往 OpenAI 並可能產生費用。</span>
+      </label>
+      {unsupportedVoiceEngine && <p className="notice">目前所選引擎尚不能進行離線語音翻譯；請改選 Cloud 或將兩個方向設為不翻譯。</p>}
+      {!selectedOkay && <p className="notice">請先設定四個不同用途的音訊端點，確保兩個輸入與兩個輸出各自分離。</p>}
+      <div className="controls">
+        {inCall
+          ? <button className="danger" disabled={busy || phase === "stopping"} onClick={() => void stop()}>停止音訊處理</button>
+          : <button className="primary" disabled={!ready} onClick={() => void start()}>{needsAi ? "開始雙向語音翻譯" : "開始原音直通（無 AI）"}</button>}
+      </div>
+      <p className="disclaimer">Tauri 原生程式已具備音訊路由與雲端串流程式碼；LINE 真實通話仍需要在 Windows/macOS 真機測試。不能假設所有 LINE 版本可用。</p>
+    </section>
+
+    <section className="card engine-section">
+      <div className="card-head"><div><span className="eyebrow">04 · LOCAL MODEL MANAGER</span><h2>本地模型管理 / 文字翻譯測試</h2></div>
+        <button className="secondary compact" disabled={modelBusy} onClick={() => void refreshModels()}>檢查 Ollama</button></div>
+      <p className="hint">需要使用者自行安裝並啟動 Ollama。翻譯文字只送至 127.0.0.1；模型首次下載可能需要網路，之後文字推論可以離線進行。</p>
+      <div className="model-runtime">
+        <span className={localStatus?.available ? "live-dot active" : "live-dot"} />
+        <strong>{localStatus?.available ? "Ollama 已連線" : "Ollama 尚未連線"}</strong>
+        <small>{modelMessage || "正在偵測本地模型服務…"}</small>
+      </div>
+      <div className="model-grid">
+        {localStatus?.models.map((model) => <div className="model-card" key={model.id}>
+          <div><strong>{model.name}</strong><small>{model.id} · {model.sizeNote}</small></div>
+          <div className="model-links">
+            <a href={model.sourceUrl} target="_blank" rel="noreferrer">來源</a>
+            <a href={model.licenseUrl} target="_blank" rel="noreferrer">授權條款</a>
+          </div>
+          <div className="model-card-footer">
+            <span className={model.installed ? "installed" : "not-installed"}>{model.installed ? "已安裝" : "尚未安裝"}</span>
+            {model.installed
+              ? <button className="secondary compact" disabled={modelBusy} onClick={() => void removeModel(model)}>刪除模型</button>
+              : <button className="secondary compact" disabled={modelBusy || !localStatus.available} onClick={() => void installModel(model)}>確認後下載</button>}
+          </div>
+        </div>)}
+      </div>
+      {modelProgress && <p className="model-progress" role="status">
+        {modelProgress.model}：{modelProgress.status}
+        {modelProgress.percent !== null ? " · " + modelProgress.percent + "%" : ""}
+      </p>}
+      <div className="preview-editor">
+        <h3>本地翻譯文字預覽</h3>
+        <div className="preview-fields">
+          <label className="device-field"><span className="device-title">已安裝模型</span>
+            <select value={previewModel} disabled={modelBusy} onChange={(e) => setPreviewModel(e.target.value)}>
+              {localStatus?.models.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
+            </select></label>
+          <label className="device-field"><span className="device-title">原文語言</span>
+            <select value={previewSource} disabled={modelBusy} onChange={(e) => setPreviewSource(e.target.value as Locale)}>
+              {locales.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select></label>
+          <label className="device-field"><span className="device-title">目標語言</span>
+            <select value={previewTarget} disabled={modelBusy} onChange={(e) => setPreviewTarget(e.target.value as Locale)}>
+              {locales.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select></label>
+        </div>
+        <textarea value={previewText} maxLength={2000} disabled={modelBusy}
+          placeholder="輸入一段文字，使用本地模型翻譯…" onChange={(e) => setPreviewText(e.target.value)} />
+        <button className="secondary" disabled={modelBusy || !localStatus?.models.some((m) => m.id === previewModel && m.installed) || !previewText.trim()}
+          onClick={() => void previewTranslation()}>測試本地文字翻譯</button>
+        {previewResult && <div className="preview-result" role="status">{previewResult}</div>}
+      </div>
+    </section>
+
+    <section className="caption-section">
+      <div className="card-head"><div><span className="eyebrow">05 · SUBTITLES</span><h2>即時字幕</h2></div>
+        <button className="secondary compact" onClick={() => setSubtitles({
+          outbound: { original: "", translated: "" },
+          inbound: { original: "", translated: "" },
+        })}>清除字幕</button></div>
+      <div className="caption-grid">
+        <SubtitleCard title="你 → 對方" {...subtitles.outbound} />
+        <SubtitleCard title="對方 → 你" {...subtitles.inbound} />
+      </div>
+    </section>
+    <footer>本工具不是 LINE 官方 Plugin。音訊處理需要雙方知情同意；本地模型文字功能不是已驗證的離線語音通話。</footer>
+  </main>;
 }
