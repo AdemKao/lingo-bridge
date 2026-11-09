@@ -5,16 +5,6 @@ on:
   pull_request:
 
 jobs:
-  version-consistency:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Confirm matching versions and release notes
-        run: node .github/scripts/check-version.mjs
-
   rust-core:
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +12,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+      - name: Check release version consistency
+        run: node .github/scripts/check-version.mjs
       - name: Rust format
         run: cargo fmt --all -- --check
       - name: Rust unit tests
