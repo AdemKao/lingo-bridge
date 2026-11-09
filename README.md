@@ -85,3 +85,7 @@ The app uses **OS audio device routing**, not an official LINE SDK or API. It ca
 See [architecture](docs/architecture.md), [privacy/BYOK](docs/privacy.md), [roadmap](docs/roadmap.md).
 
 Independent project, not affiliated with or endorsed by LINE or LY Corporation. No open-source license has been selected.
+
+## Unsigned preview builds
+
+The [Desktop preview installers workflow](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml) provides a **manual** GitHub Actions build for Windows NSIS and a macOS app archive. Trigger it from Actions → Run workflow. These are **unsigned developer builds** for testing, not production releases. Virtual audio drivers are **not bundled**; on macOS, unsigned/unnotarized apps may require platform trust or signing before they can run. Production releases require signing, driver licensing checks and real-call verification.

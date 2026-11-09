@@ -1,0 +1,53 @@
+name: Desktop preview installers (unsigned)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+            bundles: nsis
+          - os: macos-latest
+            label: macos
+            bundles: app
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install desktop frontend
+        working-directory: apps/desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Generate platform icons
+        working-directory: apps/desktop
+        run: npm run tauri -- icon src-tauri/icons/icon.png
+
+      - name: Build unsigned native desktop bundle
+        working-directory: apps/desktop
+        run: npm run tauri -- build --bundles ${{ matrix.bundles }}
+
+      - name: Package macOS app archive
+        if: runner.os == 'macOS'
+        shell: bash
+        run: tar -C target/release/bundle/macos -czf lingo-bridge-macos-unsigned.tar.gz "Lingo Bridge.app"
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lingo-bridge-${{ matrix.label }}-unsigned
+          if-no-files-found: error
+          path: |
+            target/release/bundle/nsis/*.exe
+            lingo-bridge-macos-unsigned.tar.gz

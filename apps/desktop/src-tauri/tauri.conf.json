@@ -10,14 +10,28 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{
-      "title": "Lingo Bridge",
-      "width": 1040,
-      "height": 820,
-      "minWidth": 540,
-      "minHeight": 560
-    }],
-    "security": { "csp": null }
+    "windows": [
+      {
+        "title": "Lingo Bridge",
+        "width": 1040,
+        "height": 820,
+        "minWidth": 540,
+        "minHeight": 560
+      }
+    ],
+    "security": {
+      "csp": null
+    }
   },
-  "bundle": { "active": false }
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
 }
