@@ -153,3 +153,8 @@ cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
 ---
 
 <sub>本專案為獨立實驗性專案，並非 LINE／LY Corporation 官方提供或認可的外掛。</sub>
+
+
+### 離線中日雙向 WAV 語音翻譯（原始碼實驗）
+
+新增 Rust CLI，可將 SenseVoice 語音辨識、本機 Ollama 翻譯、Supertonic 日文或 Matcha 中文 TTS 串接，輸出新 WAV。**不需要 OpenAI Key，但不代表桌面版已能離線翻譯 LINE 通話。** 模型由使用者自行下載、確認授權。參考 [離線 WAV 指南](docs/offline-wav-pipeline.md)。

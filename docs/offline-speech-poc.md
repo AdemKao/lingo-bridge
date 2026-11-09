@@ -79,3 +79,8 @@ the target OS, with the sherpa ONNX toolchain allowed to download its native run
 - https://docs.rs/sherpa-onnx/latest/sherpa_onnx/
 - https://github.com/k2-fsa/sherpa-onnx/tree/master/rust-api-examples
 - https://k2-fsa.github.io/sherpa/onnx/tts/supertonic.html
+
+
+## Offline WAV pipeline
+
+See [offline-wav-pipeline.md](offline-wav-pipeline.md) for the new two-direction file-to-file speech translation test using local Ollama and the Chinese Matcha-TTS model. It is not a live LINE call.

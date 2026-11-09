@@ -8,6 +8,10 @@
 
 ## [未發布]
 
+### 新增
+- 中文 Matcha-TTS WAV 語音合成，以及利用 SenseVoice、本機 Ollama 與雙語 TTS 的中日雙向音訊檔翻譯流程（CLI 實驗，未連接 LINE）。
+- Windows／macOS CI 增加選用離線管線的編譯檢查。
+
 ### 規劃中
 - Windows／Mac 真機進行 LINE 雙向音訊、翻譯延遲及回音安全測試。
 - 加入中文離線 TTS，將本地 STT／文字翻譯／TTS 串上即時語音管線。

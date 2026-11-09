@@ -50,7 +50,9 @@ Progress and acceptance criteria: https://github.com/AdemKao/lingo-bridge/issues
 - [x] Add provider-independent bounded speech segmenter with Rust unit tests
 - [x] Add optional sherpa-onnx based SenseVoice STT and Japanese Supertonic TTS WAV smoke-test adapters
 - [ ] Verify sherpa-native feature compilation and inference with actual model files on Windows and macOS
-- [ ] Add Chinese-capable local TTS (Japanese TTS alone is not bidirectional voice translation)
+- [x] Add experimental Matcha Chinese TTS for WAV samples (not a live voice call)
+- [x] Implement WAV file-to-file offline Chinese/Japanese translation CLI using local Ollama (weights and hardware evaluation pending)
+- [ ] Benchmark actual STT/TTS/translation models on Windows and macOS
 - [ ] Wire native local speech streams through Ollama and existing LINE audio router with VAD/latency tests
 
 See [offline speech POC](docs/offline-speech-poc.md). This is **not** complete offline voice calling.
