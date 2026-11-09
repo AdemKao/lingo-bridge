@@ -1,0 +1,18 @@
+[package]
+name = "lingo-bridge-desktop"
+version.workspace = true
+edition.workspace = true
+description = "Tauri 2 desktop host"
+build = "build.rs"
+
+[lib]
+name = "lingo_bridge_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+lingo-core = { path = "../../../crates/lingo-core" }

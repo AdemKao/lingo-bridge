@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust format
+        run: cargo fmt --all -- --check
+      - name: Rust unit tests
+        run: cargo test -p lingo-core -p audio-core
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: apps/desktop
+        run: npm install --no-audit --no-fund
+      - name: Build
+        working-directory: apps/desktop
+        run: npm run build
+
+  native-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Tauri Rust
+        run: cargo check -p lingo-bridge-desktop
+
+  native-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Tauri Rust
+        run: cargo check -p lingo-bridge-desktop

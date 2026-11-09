@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Lingo Bridge",
+  "version": "0.1.0",
+  "identifier": "dev.lingobridge.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{
+      "title": "Lingo Bridge",
+      "width": 1040,
+      "height": 820,
+      "minWidth": 540,
+      "minHeight": 560
+    }],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": false }
+}
