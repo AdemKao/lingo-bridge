@@ -24,3 +24,7 @@ The app currently offers **one provider**: OpenAI Realtime Translation. It doesn
 ## Limitations before distribution
 
 The runtime key is not persisted (no OS keychain integration). Native installer signing, automatic permission prompts, transcript deletion controls for future storage and security audit are not yet provided.
+
+## Offline text model preview (phase 1)
+
+The local text preview calls only the fixed local Ollama endpoint `http://127.0.0.1:11434` and does not send that text to OpenAI. Opening the app checks the local Ollama instance for installed models; it does not download a model automatically. Model download requires user confirmation and can access the Internet through Ollama. Local / Hybrid **speech** is still unavailable; the app rejects those modes for translated voice until STT/TTS integration is complete. Both original-audio routes may run without an API Key and without provider requests.

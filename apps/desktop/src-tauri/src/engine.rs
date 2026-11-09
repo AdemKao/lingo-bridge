@@ -1,19 +1,23 @@
-//! Orchestrates 4 explicitly selected devices and 2 independent translation sockets.
+//! Both call directions use the same OS audio router. Original-audio bypass never
+//! connects to OpenAI (or any other model service).
 
-use crate::audio::{self, DeviceSelection};
+use crate::audio::{self, Capture, DeviceSelection, Playback, PlaybackQueue};
 use crate::realtime::{self, Path};
+use crate::resample::Resampler;
 use anyhow::{Context, Result};
+use lingo_core::{AudioDirection, CallLanguageSettings};
 use serde_json::json;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 
 pub fn run(
     app: AppHandle,
-    key: String,
+    key: Option<String>,
     model: String,
     selection: DeviceSelection,
+    languages: CallLanguageSettings,
     stop: watch::Receiver<bool>,
 ) -> Result<()> {
     selection.validate()?;
@@ -27,13 +31,8 @@ pub fn run(
         audio::start_playback(&selection.headphones_output).context("無法啟動本機耳機輸出")?;
     let _ = app.emit(
         "lingo-status",
-        json!({
-            "phase": "connecting",
-            "detail": "音訊設備已啟動，正在建立兩個 AI 翻譯連線…"
-        }),
+        json!({"phase":"connecting","detail":"音訊設備已啟動，正在啟動各方向的音訊處理…"}),
     );
-
-    // The CPAL streams remain owned by this worker thread while the runtime runs.
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -41,31 +40,111 @@ pub fn run(
     let ready = Arc::new(AtomicUsize::new(0));
     runtime.block_on(async move {
         tokio::try_join!(
-            realtime::translate(
+            route(
                 key.clone(),
                 model.clone(),
                 Path::Outbound,
-                microphone.sample_rate,
-                japanese_to_line.sample_rate,
-                microphone.receiver,
-                japanese_to_line.queue.clone(),
+                languages.outbound,
+                microphone,
+                japanese_to_line,
                 app.clone(),
                 ready.clone(),
-                stop.clone(),
+                stop.clone()
             ),
-            realtime::translate(
+            route(
                 key,
                 model,
                 Path::Inbound,
-                remote_speech.sample_rate,
-                chinese_headphones.sample_rate,
-                remote_speech.receiver,
-                chinese_headphones.queue.clone(),
+                languages.inbound,
+                remote_speech,
+                chinese_headphones,
                 app,
                 ready,
-                stop,
+                stop
             )
         )?;
         Ok(())
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn route(
+    key: Option<String>,
+    model: String,
+    path: Path,
+    language: AudioDirection,
+    capture: Capture,
+    playback: Playback,
+    app: AppHandle,
+    ready: Arc<AtomicUsize>,
+    stop: watch::Receiver<bool>,
+) -> Result<()> {
+    let Capture {
+        receiver,
+        sample_rate: source_rate,
+        _stream: _capture_stream,
+    } = capture;
+    let Playback {
+        queue,
+        sample_rate: output_rate,
+        _stream: _output_stream,
+    } = playback;
+    match language.output_language() {
+        Some(target) => {
+            realtime::translate(
+                key.context("翻譯方向需要 API Key")?,
+                model,
+                path,
+                source_rate,
+                output_rate,
+                receiver,
+                queue,
+                app,
+                ready,
+                stop,
+                target,
+            )
+            .await
+        }
+        None => passthrough(receiver, source_rate, queue, output_rate, app, ready, stop).await,
+    }
+}
+
+async fn passthrough(
+    mut receiver: mpsc::Receiver<Vec<f32>>,
+    source_rate: u32,
+    playback: PlaybackQueue,
+    output_rate: u32,
+    app: AppHandle,
+    ready: Arc<AtomicUsize>,
+    mut stop: watch::Receiver<bool>,
+) -> Result<()> {
+    let count = ready.fetch_add(1, Ordering::SeqCst) + 1;
+    if count == 2 {
+        let _ = app.emit(
+            "lingo-status",
+            json!({"phase":"active","detail":"音訊管線已就緒；不翻譯的方向只傳送原音"}),
+        );
+    }
+    let mut resampler = Resampler::new(source_rate, output_rate);
+    if *stop.borrow() {
+        return Ok(());
+    }
+    loop {
+        tokio::select! {
+            changed = stop.changed() => {
+                if changed.is_err() || *stop.borrow() {
+                    return Ok(());
+                }
+            }
+            chunk = receiver.recv() => {
+                match chunk {
+                    Some(samples) => {
+                        audio::enqueue(&playback, &resampler.convert(&samples), output_rate);
+                    }
+                    None => anyhow::bail!("原音轉送裝置已中斷"),
+                }
+            }
+        }
+    }
 }
