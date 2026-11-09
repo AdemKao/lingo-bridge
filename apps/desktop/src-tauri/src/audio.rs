@@ -249,3 +249,101 @@ pub fn test_tone(outgoing_device_id: &str) -> Result<()> {
     std::thread::sleep(Duration::from_millis(650));
     Ok(())
 }
+
+
+/// A local-only diagnostic. Explicit user action captures up to one second
+/// of mono audio in RAM, computes RMS and peak, then drops the stream.
+/// No samples are written to disk or sent to any network service.
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputLevel {
+    pub rms: f32,
+    pub peak: f32,
+    pub sample_count: usize,
+    pub sample_rate: u32,
+    pub duration_ms: u64,
+}
+
+#[derive(Default)]
+struct LevelAccumulator {
+    squared_sum: f64,
+    peak: f32,
+    count: usize,
+}
+
+impl LevelAccumulator {
+    fn push(&mut self, frames: &[f32]) {
+        for &sample in frames {
+            let finite = if sample.is_finite() { sample } else { 0.0 };
+            let absolute = finite.abs().min(1.0);
+            self.peak = self.peak.max(absolute);
+            self.squared_sum += f64::from(absolute) * f64::from(absolute);
+        }
+        self.count += frames.len();
+    }
+
+    fn result(&self, sample_rate: u32, duration_ms: u64) -> InputLevel {
+        let rms = if self.count == 0 {
+            0.0
+        } else {
+            (self.squared_sum / self.count as f64).sqrt() as f32
+        };
+        InputLevel {
+            rms,
+            peak: self.peak,
+            sample_count: self.count,
+            sample_rate,
+            duration_ms,
+        }
+    }
+}
+
+pub fn check_input_level(input_device_id: &str) -> Result<InputLevel> {
+    let capture = start_capture(input_device_id)?;
+    let mut receiver = capture.receiver;
+    // Keep the stream alive for the entire one-second sample interval.
+    let _stream = capture._stream;
+    let start = std::time::Instant::now();
+    let mut meter = LevelAccumulator::default();
+    while start.elapsed() < Duration::from_millis(900) {
+        match receiver.try_recv() {
+            Ok(samples) => meter.push(&samples),
+            Err(mpsc::error::TryRecvError::Empty) => {
+                std::thread::sleep(Duration::from_millis(12));
+            }
+            Err(mpsc::error::TryRecvError::Disconnected) => {
+                bail!("音訊裝置已中斷，請重新整理裝置清單");
+            }
+        }
+    }
+    // Drain samples already captured before the one-second window closes.
+    while let Ok(samples) = receiver.try_recv() {
+        meter.push(&samples);
+    }
+    if meter.count == 0 {
+        bail!("在測試時間內沒有收到裝置音訊樣本");
+    }
+    Ok(meter.result(capture.sample_rate, start.elapsed().as_millis() as u64))
+}
+
+#[cfg(test)]
+mod input_level_tests {
+    use super::*;
+
+    #[test]
+    fn measures_peak_and_rms_without_exposing_samples() {
+        let mut meter = LevelAccumulator::default();
+        meter.push(&[0.5, -0.5, 0.0, 0.0]);
+        let report = meter.result(48_000, 100);
+        assert!((report.rms - 0.35355338).abs() < 0.0001);
+        assert_eq!(report.peak, 0.5);
+        assert_eq!(report.sample_count, 4);
+    }
+
+    #[test]
+    fn nonfinite_audio_is_silenced() {
+        let mut meter = LevelAccumulator::default();
+        meter.push(&[f32::NAN, f32::INFINITY, -f32::INFINITY]);
+        assert_eq!(meter.result(16_000, 100).rms, 0.0);
+    }
+}
