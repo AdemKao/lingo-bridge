@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Audio routing setup / 音訊設定
+    url: https://github.com/AdemKao/lingo-bridge/blob/main/docs/audio-routing.md
+    about: Review the guide before opening an audio setup issue.
+  - name: Download and releases / 下載與發行
+    url: https://github.com/AdemKao/lingo-bridge/releases
+    about: Find versioned Windows and macOS alpha installers.

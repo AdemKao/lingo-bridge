@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./styles.css";
+import appPackage from "../package.json";
 
 type Device = { id: string; name: string; kind: "input" | "output"; isDefault: boolean };
 type Status = { running: boolean; model: string; hasEnvKey: boolean };
@@ -316,7 +317,7 @@ export default function App() {
     <header className="topbar">
       <div className="brand"><span className="brand-icon" aria-hidden="true">◎</span>
         <div><strong>Lingo Bridge</strong><small>多語言語音口譯 · Windows / macOS</small></div></div>
-      <span className="version-pill">Rust + Tauri 2</span>
+      <span className="version-pill">v{appPackage.version} · Alpha</span>
     </header>
     <section className="hero">
       <span className="eyebrow">BIDIRECTIONAL INTERPRETER · LANGUAGE ROUTING</span>

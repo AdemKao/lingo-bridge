@@ -1,119 +1,156 @@
+<div align="center">
+
 # Lingo Bridge
 
-> **2026-11 language/local phase:** The desktop app now includes independent outbound/inbound language selectors with a **No translation / original audio** option, plus local Ollama text translation and opt-in model download. Offline STT/TTS and actual local voice interpretation are **not implemented yet**. See [Local model guide](docs/local-models.md) and [Issue #1](https://github.com/AdemKao/lingo-bridge/issues/1).
+**Real-time translation experiments for desktop calls — powered by Rust.**
 
-**Rust-first experimental Chinese ↔ Japanese real-time call translation for Windows and macOS.**
+Build a language bridge between two people using Windows or macOS, with cloud BYOK and on-device AI experiments.
 
-The **local Chinese-speaking user alone** installs the app, while the Japanese-speaking participant uses ordinary LINE without additional software.
+[**English**](README.md) · [**繁體中文**](README.zh-TW.md) · [**Contribute translations**](docs/i18n/README.md)
 
-> **Status: integrated prototype, not a proven production LINE translator.** Device capture/playback and the OpenAI Realtime Translation WebSocket pipeline are implemented, but **real LINE calls have not yet been verified end to end on physical Windows and macOS machines**. LINE integration is unofficial and depends on manually configured virtual audio devices.
+[![CI](https://github.com/AdemKao/lingo-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/AdemKao/lingo-bridge/actions/workflows/ci.yml)
+[![Installers](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml)
+![Windows and macOS](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-4069c9)
+![Alpha](https://img.shields.io/badge/status-experimental%20alpha-orange)
 
-## What works in code
+**[⬇ Download Alpha](https://github.com/AdemKao/lingo-bridge/releases)** ·
+**[Quick Start](#quick-start)** ·
+**[Roadmap](docs/roadmap.md)** ·
+**[Issues](https://github.com/AdemKao/lingo-bridge/issues)** ·
+**[Changelog](CHANGELOG.md)**
 
-- Tauri 2 + React/TypeScript desktop interface with device picker and status.
-- Cross-platform CPAL (Windows WASAPI / macOS CoreAudio) audio input and output.
-- Two independent streaming translation sessions, Mandarin→Japanese and Japanese→Mandarin.
-- OpenAI `gpt-realtime-translate` dedicated WebSockets, 24 kHz PCM16 audio in 200 ms packets and streamed speech output.
-- Original / translated transcript deltas displayed in the app.
-- Startup/shutdown controls and bounded audio buffers.
-- **Developer `.env`** and **per-session BYOK** (user enters their own API key in the UI; no key saved to disk).
-- **Test tone** to verify LINE's virtual microphone route without an API key.
+</div>
 
-## Requirements
+> [!WARNING]
+> **Alpha software — not a production-ready or officially supported LINE translation plugin.**
+> Working Windows/macOS installers and green CI do **not** establish that native LINE calls
+> translate correctly. The audio routing is based on OS devices, not LINE's private interfaces.
+> Always tell call participants before sending audio to an AI provider, and test with consent.
 
-- Windows 10/11 or macOS supported by Tauri 2, with Rust stable and Node.js 22.
-- [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
-- **Two separately configured virtual audio cable devices**, not one shared cable.
-  - Windows examples: VB-Audio Cable / similar independent cable instances (check commercial licensing).
-  - Mac example: separately installed/configured BlackHole instances or equivalent (requires manual routing).
-- LINE Desktop, headphones and a consenting test participant.
-- An OpenAI API account with access to `gpt-realtime-translate`; realtime translation incurs metered costs.
+## What is Lingo Bridge?
 
-## Configure API access
+Our goal: **only the local speaker installs Lingo Bridge**. They speak Chinese on a PC or Mac
+while someone using ordinary LINE (no additional software) could hear Japanese speech; replies
+in Japanese would be converted back to Chinese audio and captions.
+
+The codebase currently has a **cloud voice translation prototype** and a separate
+**offline text/model and speech CLI research track**. End-to-end LINE compatibility
+and latency still require real-device testing.
+
+```text
+   Outbound: Mic (ZH) ──► Cloud speech translation ──► Cable A ──► LINE ──► Remote (JA)
+    Inbound: Local (ZH) ◄── Headphones / captions ◄── Cloud ◄── Cable B ◄── LINE (JA)
+                            Your Windows / macOS computer
+```
+
+## Feature status
+
+| Capability | Current state |
+| --- | --- |
+| Windows x64, macOS Apple Silicon, macOS Intel installers | ✅ Builds verified; unsigned **alpha** |
+| Device selection, two separate cable routes and test tone | 🧪 Implemented prototype; manual setup |
+| OpenAI live translation, subtitles and BYOK | 🧪 Implemented prototype; unverified LINE call |
+| Independently configured directions and original-audio bypass | 🧪 Implemented |
+| Local Ollama text translation and model downloads | 🧪 Available as text preview |
+| Offline Chinese/Japanese STT (SenseVoice) | 🧪 Separate sherpa-onnx CLI experiment |
+| Offline Japanese TTS (Supertonic) | 🧪 Separate sherpa-onnx CLI experiment |
+| Offline Mandarin TTS and local live voice pipeline | ⏳ Not yet integrated |
+| Real-world LINE compatibility, latency and echo safety | ⏳ Not yet validated |
+| Driver auto-install, signed installers and auto-update | ⏳ Not available |
+
+For current milestones see [Roadmap](docs/roadmap.md), [Offline Speech POC](docs/offline-speech-poc.md)
+and [Changelog](CHANGELOG.md).
+
+## Download
+
+Download the latest **pre-release** from **[GitHub Releases](https://github.com/AdemKao/lingo-bridge/releases)**.
+Do not confuse a successfully compiled alpha with a verified stable release.
+
+| Computer | File | Important notes |
+| --- | --- | --- |
+| Windows 10/11 x64 | `.exe` (NSIS installer) | Unsigned alpha; SmartScreen may warn |
+| Mac Apple Silicon | arm64 `.dmg` | Ad-hoc signed, **not** Apple notarized |
+| Mac Intel | x86_64 `.dmg` | Ad-hoc signed, **not** Apple notarized |
+
+Installers include **neither virtual audio cables nor model weights**.
+No developer API key is embedded. If a Release is not yet published, see
+the [Actions build artifacts](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml)
+or [release instructions](docs/releasing.md).
+
+## Quick start
+
+1. **Configure two independent virtual audio cables.** On Windows consider
+   [VB-CABLE](https://vb-audio.com/Cable/index.htm); on Mac consider
+   [BlackHole](https://github.com/ExistentialAudio/BlackHole) or compatible audio routing.
+   Check each third-party license. A single cable cannot safely provide both directions.
+2. **Set LINE's microphone to Cable A's recording endpoint**, and LINE's speaker
+   to Cable B's playback endpoint. In Lingo Bridge, choose Cable A's playback
+   endpoint for outgoing translated speech, Cable B's recording endpoint for
+   incoming LINE speech, your physical microphone and your headphones.
+3. **Use the test tone** to check that your remote test participant hears the sound.
+   This does not consume API credits.
+4. **Cloud mode:** enter your own OpenAI API key (BYOK); no key is saved to disk
+   by the app. **Local text mode:** install [Ollama](https://ollama.com/download),
+   then explicitly download a supported model from the in-app Model Manager.
+   Local text mode is **not** yet local live-call translation.
+5. Obtain **informed consent** from both participants before enabling speech
+   processing. Use headphones and test for audio feedback or unintended original speech.
+
+Full setup: **[Audio routing](docs/audio-routing.md)** ·
+**[Local models](docs/local-models.md)** · **[Privacy and keys](docs/privacy.md)**
+
+## Build from source
+
+Requires Rust stable, Node.js 22 + npm and the
+[Tauri 2 OS prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 git clone https://github.com/AdemKao/lingo-bridge.git
-cd lingo-bridge
-cp .env.example .env
-```
-
-Set values in **the root `.env` file**:
-
-```dotenv
-OPENAI_API_KEY=your-key-here
-OPENAI_TRANSLATION_MODEL=gpt-realtime-translate
-OPENAI_TRANSCRIPTION_MODEL=gpt-realtime-whisper
-```
-
-`.env` is ignored by Git. **Never commit real credentials or distribute a populated `.env` with your app.** If you prefer BYOK, leave `OPENAI_API_KEY` empty and enter your own key in the desktop UI each time. BYOK overrides environment configuration and is erased from the UI after starting the call.
-
-## Start desktop development
-
-```sh
-cd apps/desktop
+cd lingo-bridge/apps/desktop
 npm install
 npm run tauri dev
 ```
 
-`npm run dev` is web-only: native audio controls require the desktop host.
-
-## Configure LINE audio routing
-
-**Two separate virtual cables are mandatory.**
-
-| Lingo Bridge | What to choose | LINE setting |
-| --- | --- | --- |
-| ① Physical mic | Your actual microphone | Do NOT select your physical mic in LINE |
-| ② Incoming LINE audio | Recording/input endpoint of Cable B | LINE **speaker/output** = Cable B playback |
-| ③ Japanese output to LINE | Playback/output endpoint of Cable A | LINE **microphone/input** = Cable A recording |
-| ④ Mandarin headphones | Your physical headphones | No direct original LINE audio |
-
-Read [the audio routing setup guide](docs/audio-routing.md) before starting a call. Press the **0.5-second test tone** button to verify your outgoing cable first. Only start AI processing after informing both call participants and getting consent.
-
-## Run tests
+For developer-only cloud credentials, copy `.env.example` into a **root `.env`**.
+Never commit a real key, and **never distribute a populated `.env`**.
+End users enter BYOK in the UI.
 
 ```sh
+# From repository root:
+node .github/scripts/check-version.mjs
 cargo fmt --all -- --check
-cargo test -p lingo-core -p audio-core
-cd apps/desktop && npm run build
+cargo test -p lingo-core -p audio-core -p lingo-speech
+cargo check -p lingo-bridge-desktop
+# Optional, requires the sherpa-onnx native toolchain:
+cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
 ```
 
-Native compilation on Windows and macOS is checked by GitHub Actions.
+## Architecture
 
-## Architecture and limitations
+| Path | Responsibility |
+| --- | --- |
+| `apps/desktop` | Tauri 2 + React/TypeScript desktop UI |
+| `apps/desktop/src-tauri` | Native Rust app, audio devices, cloud translation |
+| `crates/lingo-core` | Direction and language types |
+| `crates/audio-core` | PCM format helpers |
+| `crates/lingo-speech` | Experimental offline STT / Japanese TTS and segmentation |
+| `docs/` | Audio setup, models, privacy, releases, localization |
 
-The app uses **OS audio device routing**, not an official LINE SDK or API. It cannot automatically intercept every LINE call or set all LINE audio devices. There is no automatic driver installer, OS credential vault, signed release installer, robust reconnection, or guaranteed translation latency yet. **Real calls and model access must be tested with your own devices and credentials.**
+## Community and release process
 
-See [architecture](docs/architecture.md), [privacy/BYOK](docs/privacy.md), [roadmap](docs/roadmap.md).
+- [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) ·
+  [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md) · [Semantic Versioning](docs/VERSIONING.md) ·
+  [Release notes](docs/releases/v0.1.0-alpha.1.md)
+- [Documentation localization](docs/i18n/README.md) · [繁體中文 README](README.zh-TW.md)
+- [Issues](https://github.com/AdemKao/lingo-bridge/issues) ·
+  [Pull requests](https://github.com/AdemKao/lingo-bridge/pulls)
 
-Independent project, not affiliated with or endorsed by LINE or LY Corporation. No open-source license has been selected.
+> **Licensing:** A source-code license has **not** been selected. Public visibility
+> alone does not grant reuse or redistribution rights. Third-party models and audio
+> drivers have their own licenses. License selection is required before a broadly
+> reusable open-source release.
 
-## Unsigned preview builds
+---
 
-After generating icons, local preview installers can also be built using `npm run tauri -- build --config src-tauri/tauri.bundle.conf.json` from `apps/desktop`.
-
-The [Desktop preview installers workflow](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml) provides a **manual** GitHub Actions build for Windows NSIS and a macOS app archive. Trigger it from Actions → Run workflow. These are **unsigned developer builds** for testing, not production releases. Virtual audio drivers are **not bundled**; on macOS, unsigned/unnotarized apps may require platform trust or signing before they can run. Production releases require signing, driver licensing checks and real-call verification.
-
-## Language routing
-
-Each direction independently selects its spoken language and desired listener language. The app initially exposes Traditional Chinese, Japanese, English, Korean, French and Spanish as targets, matching supported cloud output options. Select **No translation / original audio** to relay audio without creating a translation session for that direction. If both directions are original audio, no OpenAI API Key is needed. Local/Hybrid voice translation remains disabled until offline STT and TTS exist.
-
-To test offline text translation, start Ollama locally and use the in-app Model Manager; install Qwen3 4B or TranslateGemma 4B only after reviewing model licenses. See [Local model guide](docs/local-models.md).
-
-## Offline speech experiments (opt-in)
-
-The repository now contains `crates/lingo-speech`, an offline speech **utterance segmenter** and an optional, model-dependent **sherpa-onnx** command-line smoke test for Chinese/Japanese SenseVoice STT and Japanese Supertonic TTS. No API key is required for these local tests. **These adapters are not yet connected to the LINE live-call engine.** See [offline speech setup](docs/offline-speech-poc.md).
-
-```sh
-cargo test -p lingo-speech
-cargo run -p lingo-speech --features sherpa --bin lingo-speech-smoke -- stt INPUT_16KHZ.WAV MODEL.ONNX TOKENS.TXT
-cargo run -p lingo-speech --features sherpa --bin lingo-speech-smoke -- tts-ja MODEL_DIR OUTPUT.WAV "こんにちは"
-```
-
-The Sherpa native library and model weights are separate downloads. Do not commit model weights into this repository.
-
-## Downloadable alpha installers
-
-The public-repository [desktop installer workflow](.github/workflows/build-desktop.yml) builds Windows x64 `.exe`, macOS Apple Silicon `.dmg` and macOS Intel `.dmg` packages using standard GitHub Actions runners. The workflow produces downloadable Actions artifacts for private tests; the optional **manual** publish mode creates a **draft pre-release**, which must be reviewed and published separately. This is a development preview, not a verified LINE calling product. [Read the release guide](docs/releasing.md).
-
-When available, public installers appear under [GitHub Releases](https://github.com/AdemKao/lingo-bridge/releases).
+<sub>Independent experiment; not affiliated with, approved by, or endorsed by LINE / LY Corporation.</sub>
