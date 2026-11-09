@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["crates/lingo-core", "crates/audio-core", "apps/desktop/src-tauri"]
-default-members = ["crates/lingo-core", "crates/audio-core"]
+members = ["crates/lingo-core", "crates/audio-core", "crates/lingo-speech", "apps/desktop/src-tauri"]
+default-members = ["crates/lingo-core", "crates/audio-core", "crates/lingo-speech"]
 
 [workspace.package]
 version = "0.1.0"

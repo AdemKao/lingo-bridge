@@ -44,3 +44,13 @@
 - [ ] Full STT/TTS model management, integrity hashes and license audits
 
 Progress and acceptance criteria: https://github.com/AdemKao/lingo-bridge/issues/1
+
+## Issue #1 follow-up — Offline speech POC
+
+- [x] Add provider-independent bounded speech segmenter with Rust unit tests
+- [x] Add optional sherpa-onnx based SenseVoice STT and Japanese Supertonic TTS WAV smoke-test adapters
+- [ ] Verify sherpa-native feature compilation and inference with actual model files on Windows and macOS
+- [ ] Add Chinese-capable local TTS (Japanese TTS alone is not bidirectional voice translation)
+- [ ] Wire native local speech streams through Ollama and existing LINE audio router with VAD/latency tests
+
+See [offline speech POC](docs/offline-speech-poc.md). This is **not** complete offline voice calling.

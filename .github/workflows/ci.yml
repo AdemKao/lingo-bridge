@@ -15,7 +15,7 @@ jobs:
       - name: Rust format
         run: cargo fmt --all -- --check
       - name: Rust unit tests
-        run: cargo test -p lingo-core -p audio-core
+        run: cargo test -p lingo-core -p audio-core -p lingo-speech
 
   frontend:
     runs-on: ubuntu-latest
