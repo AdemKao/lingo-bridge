@@ -1,86 +1,85 @@
-# Packaging and distributing Lingo Bridge alpha builds
+# Publishing Lingo Bridge installers / 發行安裝包
 
-Lingo Bridge is an experimental desktop call-translation project, NOT a verified LINE
-plugin. Distribute test installers only with clear limitations and informed audio consent.
+This project uses **Semantic Versioning**. See
+[VERSIONING.md](VERSIONING.md) and the English / Traditional Chinese
+[CHANGELOG](../CHANGELOG.md) / [更新紀錄](../CHANGELOG.zh-TW.md).
 
-## Targets
+**Current alpha: v0.1.0-alpha.1** — experimental, not validated for real LINE calls.
 
-| OS | GitHub standard runner | Package | Intended users |
-| --- | --- | --- | --- |
-| Windows x64 | `windows-latest` | NSIS `.exe` installer | Windows 10/11 x64 |
-| macOS arm64 | `macos-15` | `.dmg` | Apple Silicon Macs |
-| macOS x86_64 | `macos-15-intel` | `.dmg` | Intel Macs |
+## Supported build targets
 
-The workflow is located at [build-desktop.yml](../.github/workflows/build-desktop.yml).
-These are standard GitHub Actions runners, which GitHub provides free to public
-repositories. Artifact storage limits still apply.
+| OS | Standard GitHub Actions runner | Package |
+| --- | --- | --- |
+| Windows x64 | `windows-latest` | unsigned NSIS `.exe` |
+| macOS Apple Silicon | `macos-15` | ad-hoc signed `.dmg` |
+| macOS Intel | `macos-15-intel` | ad-hoc signed `.dmg` |
 
-## A. Test build (no public release)
+Public repositories can use GitHub-hosted standard runners without metered
+Actions minutes, though artifact storage / feature limits still apply.
 
-1. Open **Actions → Build Windows and macOS desktop installers (alpha)**.
-2. Select **Run workflow** on `main`.
-3. Leave **publish_release** unchecked.
-4. Once the run succeeds, open the run page and download the three Actions
-   artifacts at the bottom. Actions artifacts may require a GitHub login.
-5. Confirm they contain `*.exe` for Windows and two `*.dmg` files for Mac.
-6. Install and test on physical machines. Avoid publishing before verifying app launch,
-   device permissions, basic audio route and unintended original-speech leaks.
+## First public alpha (automatic on approved main merge)
 
-## B. Prepare a GitHub prerelease for public download
+When the versioned release workflow / release notes are merged into **main**,
+the [installer workflow](../.github/workflows/build-desktop.yml) builds all
+three platforms and publishes a **public GitHub pre-release** *only after all
+three builds succeed*. The release includes:
 
-1. Confirm the three platforms' builds have passed.
-2. Open the same **Actions** workflow and choose **Run workflow** on `main`.
-3. Tick **publish_release** and set `release_tag` to an unused tag such as
-   `v0.1.0-alpha.1`.
-4. The workflow builds all three installers again, then creates a
-   **draft pre-release** with the installers attached only if all builds succeed.
-5. Go to **Releases → Draft releases**, review warnings and downloads, then
-   choose **Publish release**. This last step is intentionally manual.
-6. Share https://github.com/AdemKao/lingo-bridge/releases
+- Windows `.exe`, macOS arm64 and Intel `.dmg` files
+- `SHA256SUMS.txt` checksum manifest
+- Versioned English Release Notes linking to the Traditional Chinese notes
 
-Releases are publicly downloadable without cloning the source repository.
-GitHub Release binary assets do not use your OpenAI API key or bill your API account.
+A new tag is created as `v` + the version from the aligned
+`Cargo.toml`, `apps/desktop/package.json`, and
+`apps/desktop/src-tauri/tauri.conf.json`.
 
-## Important distribution limitations
+**The workflow will not overwrite an already published version.**
+For a new alpha, bump all three versions, change the two CHANGELOGs,
+add new `docs/releases/vVERSION*.md` notes and merge to main.
 
-- **Unsigned test builds**: Windows SmartScreen may warn. macOS packages are
-  ad-hoc signed, not Apple Developer ID signed or notarized; macOS may require
-  the user to explicitly permit an identified download.
-- **No virtual audio driver bundled**: users must separately install and configure
-  two compatible independent virtual devices (Cable A + Cable B).
-- **No embedded `.env` or API keys**: for Cloud mode, users supply their own API
-  key at runtime. Never put developer credentials in a release.
-- **Local-only voice remains incomplete**: Ollama text translation is available,
-  but the sherpa ONNX STT/TTS smoke-test programs are separate Rust CLI tools,
-  not a functioning local LINE call engine.
-- **LINE real-call compatibility is unverified** on real Windows and Mac hardware.
-- **No automatic updater**: publish each alpha version as a new prerelease.
-- **No license selected**: a public GitHub repo is visible but doesn't
-  automatically grant reuse or redistribution rights. Choose an appropriate
-  source-code license before inviting external contributors.
+Download location: https://github.com/AdemKao/lingo-bridge/releases
 
-## Production release gates
+## Manual draft / test artifact process
 
-Before describing Lingo Bridge as a ready-to-use download, validate real two-way
-calls, record supported device/OS versions, set up code signing, complete security
-and privacy review, and investigate virtual device redistribution rights.
-Tauri documentation: https://v2.tauri.app/distribute/pipelines/github/
+The workflow can also be manually triggered via **Actions → Build Windows
+and macOS desktop installers (alpha) → Run workflow**:
 
-## C. Automated public alpha prerelease from a version change
+1. Leave **publish_release** unchecked to build only downloadable Actions
+   artifacts. These expire after 14 days and may require login.
+2. Or select **publish_release** with an unused tag matching the app version;
+   it creates an **unpublished draft** after three successful builds.
+3. Review the draft in GitHub Releases and manually publish it if appropriate.
 
-The [Publish versioned alpha installers](../.github/workflows/publish-alpha.yml)
-workflow runs when a reviewed change to `VERSION` lands on `main`.
-It checks version alignment, confirms the tag is new, builds on three OS runners,
-renames installers clearly, verifies three assets, writes SHA-256 checksums,
-then publishes a **public pre-release** with warning-filled notes from
-`docs/releases/vVERSION.md`. The release is visibly labelled pre-release,
-**not stable**. Publishing is explicit in code review because changing VERSION
-is the release trigger. Workflow can also be retried through manual dispatch.
+Manual invocation should not reuse an existing tag or release.
 
-The standard [Build Desktop](../.github/workflows/build-desktop.yml) workflow
-remains available for unpublished test artifacts and draft release candidates.
+## Safety and distribution
 
-Before changing VERSION, read [versioning](VERSIONING.md), test the app on
-real hardware where possible, and ensure the model/API privacy statements are
-accurate. New alpha releases must increment the suffix; never overwrite an
-existing tag.
+These are **unsigned/unnotarized alpha builds**, **not** approved production
+installers. They do **not** contain virtual audio drivers, downloaded model
+weights, API keys or `.env` files. End users configure their own audio
+devices and supply their own OpenAI key (BYOK) if they choose cloud mode.
+
+Do not claim automatic LINE integration or successful live two-way calls
+until you have verified them on consenting Windows and Mac devices.
+The separate offline speech CLI tools are not part of the app's live
+call translation pipeline yet.
+
+Before a production release: code signing/notarization, driver licensing,
+security/privacy review, stable credential handling, installer testing,
+and verified LINE compatibility are required.
+
+## Repository sidebar (About)
+
+The sidebar **About description and Topics are GitHub repository metadata**,
+not README content. The repository owner must open the gear beside About
+(or Settings → General) and set them manually. Suggested:
+
+**Description:**
+`Rust-powered experimental real-time AI voice translation for Windows & macOS calls. Cloud BYOK and offline AI research.`
+
+**Topics:**
+`rust`, `tauri`, `real-time-translation`, `voice-translation`,
+`speech-to-text`, `text-to-speech`, `windows`, `macos`, `ollama`,
+`offline-ai`.
+
+The **Releases** sidebar section populates once the first public release
+actually exists. No GitHub Packages are published by this project.
