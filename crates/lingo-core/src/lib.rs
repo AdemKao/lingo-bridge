@@ -154,7 +154,10 @@ mod tests {
         assert_eq!(routes.outbound.target.code(), "ja-JP");
         assert_eq!(routes.inbound.source.code(), "ja-JP");
         assert_eq!(routes.inbound.target.code(), "zh-TW");
-        assert_eq!(CallLanguageSettings::default().translation_session_count(), 2);
+        assert_eq!(
+            CallLanguageSettings::default().translation_session_count(),
+            2
+        );
     }
 
     #[test]

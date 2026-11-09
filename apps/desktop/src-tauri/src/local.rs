@@ -184,10 +184,12 @@ pub async fn pull(app: AppHandle, model: &str, confirmed: bool) -> Result<()> {
             if line.iter().all(|byte| byte.is_ascii_whitespace()) {
                 continue;
             }
-            let event: Value =
-                serde_json::from_slice(&line).context("Ollama 進度資料格式無效")?;
+            let event: Value = serde_json::from_slice(&line).context("Ollama 進度資料格式無效")?;
             if let Some(message) = event["error"].as_str() {
-                bail!("模型下載失敗：{}", message.chars().take(180).collect::<String>());
+                bail!(
+                    "模型下載失敗：{}",
+                    message.chars().take(180).collect::<String>()
+                );
             }
             let status = event["status"].as_str().unwrap_or("downloading");
             let total = event["total"].as_u64().unwrap_or(0);

@@ -41,12 +41,26 @@ pub fn run(
     runtime.block_on(async move {
         tokio::try_join!(
             route(
-                key.clone(), model.clone(), Path::Outbound, languages.outbound,
-                microphone, japanese_to_line, app.clone(), ready.clone(), stop.clone()
+                key.clone(),
+                model.clone(),
+                Path::Outbound,
+                languages.outbound,
+                microphone,
+                japanese_to_line,
+                app.clone(),
+                ready.clone(),
+                stop.clone()
             ),
             route(
-                key, model, Path::Inbound, languages.inbound,
-                remote_speech, chinese_headphones, app, ready, stop
+                key,
+                model,
+                Path::Inbound,
+                languages.inbound,
+                remote_speech,
+                chinese_headphones,
+                app,
+                ready,
+                stop
             )
         )?;
         Ok(())

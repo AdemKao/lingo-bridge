@@ -145,7 +145,14 @@ fn start_translation(
     std::thread::Builder::new()
         .name("lingo-call-engine".into())
         .spawn(move || {
-            let result = engine::run(app_for_worker.clone(), key, model, selection, languages, stop_rx);
+            let result = engine::run(
+                app_for_worker.clone(),
+                key,
+                model,
+                selection,
+                languages,
+                stop_rx,
+            );
             running.store(false, Ordering::SeqCst);
             if let Err(error) = result {
                 let _ = app_for_worker.emit(
