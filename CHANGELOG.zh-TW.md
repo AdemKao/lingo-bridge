@@ -9,6 +9,7 @@
 ## [未發布]
 
 ### 新增
+- 桌面端新增一秒本機麥克風／LINE 接收音訊 RMS 與峰值測試，無檔案儲存或網路傳送。
 - 中文 Matcha-TTS WAV 語音合成，以及利用 SenseVoice、本機 Ollama 與雙語 TTS 的中日雙向音訊檔翻譯流程（CLI 實驗，未連接 LINE）。
 - Windows／macOS CI 增加選用離線管線的編譯檢查。
 

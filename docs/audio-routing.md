@@ -42,3 +42,7 @@ Example virtual device: https://github.com/ExistentialAudio/BlackHole . Configur
 - No automatic virtual driver installer is bundled. Driver distribution, code signing and licensing are future work.
 - Do not assume Windows/macOS/LINE compatibility without direct hardware testing.
 - If translation fails, stop the call and investigate rather than changing to the real microphone unknowingly.
+
+## Input signal diagnostics (no cloud processing)
+
+The desktop UI includes **Test my microphone** and **Test LINE incoming audio**. Each button explicitly opens the selected input for about one second and reports RMS/peak signal levels **without saving or sending samples to AI**. Ask the remote participant's permission before testing call audio. The LINE incoming Cable B signal should rise while the remote participant speaks. If it stays near silence, revisit the LINE speaker and Cable B endpoint mapping before using paid AI translation. Real call compatibility still needs both-direction hardware tests.

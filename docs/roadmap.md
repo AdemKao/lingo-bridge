@@ -56,3 +56,8 @@ Progress and acceptance criteria: https://github.com/AdemKao/lingo-bridge/issues
 - [ ] Wire native local speech streams through Ollama and existing LINE audio router with VAD/latency tests
 
 See [offline speech POC](docs/offline-speech-poc.md). This is **not** complete offline voice calling.
+
+## Audio routing diagnostics
+
+- [x] Explicit user-activated one-second RMS/peak checks for physical mic and LINE incoming virtual cable, never persisted or uploaded.
+- [ ] Real devices and actual calls: confirm LINE audio is present and translated speech reaches remote end without original-speech leakage.

@@ -160,3 +160,7 @@ cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
 ### Offline Chinese/Japanese WAV translation (source-only POC)
 
 An opt-in Rust CLI supports **both directions**: SenseVoice STT → localhost Ollama text translation → Japanese Supertonic or Chinese Matcha TTS → new WAV. This is not connected to LINE or bundled with desktop installers. It requires user-supplied model files; no OpenAI key. See [offline WAV guide](docs/offline-wav-pipeline.md).
+
+### Local audio input signal check
+
+The desktop UI now includes explicit one-second **microphone** and **LINE incoming Cable B** audio-level checks in addition to the outgoing test tone. Samples stay in RAM, are not stored or sent to AI, and only the RMS/peak levels are shown. This helps diagnose virtual cable setup; it does not by itself prove LINE translation works.

@@ -250,7 +250,6 @@ pub fn test_tone(outgoing_device_id: &str) -> Result<()> {
     Ok(())
 }
 
-
 /// A local-only diagnostic. Explicit user action captures up to one second
 /// of mono audio in RAM, computes RMS and peak, then drops the stream.
 /// No samples are written to disk or sent to any network service.
