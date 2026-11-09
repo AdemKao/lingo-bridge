@@ -8,15 +8,23 @@
 
 ## [未發布]
 
-### 新增
-- 桌面端新增一秒本機麥克風／LINE 接收音訊 RMS 與峰值測試，無檔案儲存或網路傳送。
-- 中文 Matcha-TTS WAV 語音合成，以及利用 SenseVoice、本機 Ollama 與雙語 TTS 的中日雙向音訊檔翻譯流程（CLI 實驗，未連接 LINE）。
-- Windows／macOS CI 增加選用離線管線的編譯檢查。
-
 ### 規劃中
-- Windows／Mac 真機進行 LINE 雙向音訊、翻譯延遲及回音安全測試。
-- 加入中文離線 TTS，將本地 STT／文字翻譯／TTS 串上即時語音管線。
-- 改善虛擬音訊設定、正式簽章與更新機制。
+- 將本地語音辨識、翻譯與合成接入 LINE 即時通話，量測延遲並處理回音。
+- Windows／macOS 真機驗證 LINE 雙向通話。
+- 改善虛擬音訊設定、正式簽章和自動更新。
+
+## [0.1.0-alpha.2] - 2026-11-09
+
+### 新增
+- 桌面版加入麥克風、LINE 接收音訊線路的一秒手動 RMS／峰值音量檢查；不儲存音訊、不傳送雲端。
+- 原始碼新增中文 Matcha-TTS 離線 WAV 合成。
+- 新增中日雙向**音訊檔**翻譯 CLI：SenseVoice → 本機 Ollama → 中文／日文 TTS。
+- Rust 測試及 Windows／macOS 選用本地模型功能的編譯驗證。
+
+### 注意事項
+- 離線語音目前仍是需自行準備模型的**命令列研究工具**，並未接入下載版的 LINE 即時語音翻譯。
+- 真實 LINE 通話、延遲、回音隔離尚未通過 Windows／Mac 真機驗證。
+- 沒有 Apple 付費開發者身分時，Mac 安裝包仍未公證。
 
 ## [0.1.0-alpha.1] - 2026-11-09
 
@@ -39,3 +47,5 @@
 - 使用者 Key 僅供本次工作階段使用，尚無作業系統保管庫及自動更新。
 
 [0.1.0-alpha.1]: https://github.com/AdemKao/lingo-bridge/releases/tag/v0.1.0-alpha.1
+
+[0.1.0-alpha.2]: https://github.com/AdemKao/lingo-bridge/releases/tag/v0.1.0-alpha.2

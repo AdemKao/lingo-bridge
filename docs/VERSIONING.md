@@ -1,18 +1,18 @@
 # Versioning · 版本規範
 
 **The single release identifier is** `vMAJOR.MINOR.PATCH[-prerelease]`.
-For this early preview: **`v0.1.0-alpha.1`**.
+For this early preview: **`v0.1.0-alpha.2`**.
 
 ## Canonical files · 必須同步
 
 | File / 檔案 | Value |
 | --- | --- |
-| `Cargo.toml` → `workspace.package.version` | `0.1.0-alpha.1` |
-| `apps/desktop/package.json` → `version` | `0.1.0-alpha.1` |
-| `apps/desktop/src-tauri/tauri.conf.json` → `version` | `0.1.0-alpha.1` |
-| GitHub Release / Tag | `v0.1.0-alpha.1` |
-| `CHANGELOG.md` + `CHANGELOG.zh-TW.md` | `0.1.0-alpha.1` |
-| `docs/releases/v0.1.0-alpha.1.md` | English release notes |
+| `Cargo.toml` → `workspace.package.version` | `0.1.0-alpha.2` |
+| `apps/desktop/package.json` → `version` | `0.1.0-alpha.2` |
+| `apps/desktop/src-tauri/tauri.conf.json` → `version` | `0.1.0-alpha.2` |
+| GitHub Release / Tag | `v0.1.0-alpha.2` |
+| `CHANGELOG.md` + `CHANGELOG.zh-TW.md` | `0.1.0-alpha.2` |
+| `docs/releases/v0.1.0-alpha.2.md` | English release notes |
 
 Run `node .github/scripts/check-version.mjs` to verify alignment.
 CI and the public alpha workflow run this same check.

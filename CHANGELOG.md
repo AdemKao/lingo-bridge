@@ -9,15 +9,23 @@ or **build-validated** work; hardware validation is noted separately.
 
 ## [Unreleased]
 
-### Added
-- One-second, user-triggered local-only microphone and incoming LINE virtual-cable input-level diagnostics in the desktop UI.
-- Experimental Chinese Matcha-TTS WAV output; offline Chinese↔Japanese file-to-file pipeline using SenseVoice, local Ollama and two TTS voices (CLI only, no LINE routing).
-- Optional pipeline feature compilation in Windows/macOS CI.
-
 ### Planned
-- Validate LINE audio capture and bilingual speech on physical Windows/Mac devices.
-- Complete offline Mandarin TTS and connect local STT/translation/TTS to live audio.
+- Connect the offline speech pipeline into live LINE audio routing and measure latency.
+- Validate real LINE calls on Windows and macOS; improve echo/feedback isolation.
 - Improve cable setup, signing and update delivery.
+
+## [0.1.0-alpha.2] - 2026-11-09
+
+### Added
+- One-second, user-triggered local-only microphone and LINE incoming virtual-cable level checks, showing RMS/peak without recording or cloud processing.
+- Experimental Chinese Matcha-TTS WAV output in the source code.
+- Offline Chinese↔Japanese **file-to-file** speech translation CLI: SenseVoice STT → local Ollama translation → Chinese Matcha/Japanese Supertonic TTS.
+- Unit tests, explicit local model restrictions and separate Windows/macOS optional compile checks.
+
+### Important limitations
+- The offline speech pipeline is an **opt-in Rust CLI** and is NOT connected to the downloadable app's LINE live-call mode.
+- Virtual audio routing, speech quality, echo isolation and end-to-end call functionality remain unverified on physical devices.
+- Mac builds remain unsigned/unnotarized without a paid Apple Developer ID.
 
 ## [0.1.0-alpha.1] - 2026-11-09
 
@@ -40,3 +48,5 @@ or **build-validated** work; hardware validation is noted separately.
 - BYOK is session-only; no OS secure credential vault or updater yet.
 
 [0.1.0-alpha.1]: https://github.com/AdemKao/lingo-bridge/releases/tag/v0.1.0-alpha.1
+
+[0.1.0-alpha.2]: https://github.com/AdemKao/lingo-bridge/releases/tag/v0.1.0-alpha.2
