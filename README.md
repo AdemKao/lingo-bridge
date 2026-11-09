@@ -15,6 +15,7 @@ Build a language bridge between two people using Windows or macOS, with cloud BY
 
 **[⬇ Download Alpha](https://github.com/AdemKao/lingo-bridge/releases)** ·
 **[Quick Start](#quick-start)** ·
+**[macOS signing](docs/macos-signing.md)** ·
 **[Roadmap](docs/roadmap.md)** ·
 **[Issues](https://github.com/AdemKao/lingo-bridge/issues)** ·
 **[Changelog](CHANGELOG.md)**

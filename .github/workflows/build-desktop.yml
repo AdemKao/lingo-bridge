@@ -41,10 +41,10 @@ jobs:
     name: Check unified application version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
       - name: Ensure release files and versions match
         run: node .github/scripts/check-version.mjs
 
@@ -69,11 +69,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install frontend dependencies
@@ -89,7 +89,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
         run: npm run tauri -- build --config src-tauri/tauri.bundle.conf.json --bundles ${{ matrix.bundles }}
       - name: Upload downloadable installer artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lingo-bridge-${{ matrix.label }}-alpha
           if-no-files-found: error
@@ -106,10 +106,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
       - name: Resolve version and existing Release status
         id: release
         env:
@@ -133,21 +133,30 @@ jobs:
           fi
       - name: Download all three platform assets
         if: ${{ steps.release.outputs.exists == 'false' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: lingo-bridge-*-alpha
           path: release-assets
-          merge-multiple: true
-      - name: Verify assets and produce SHA256SUMS
+          merge-multiple: false
+      - name: Collect and verify installer files
         if: ${{ steps.release.outputs.exists == 'false' }}
         shell: bash
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
-          test "$(find release-assets -maxdepth 1 -type f -name '*.exe' | wc -l)" -eq 1
-          test "$(find release-assets -maxdepth 1 -type f -name '*.dmg' | wc -l)" -eq 2
-          cd release-assets
-          sha256sum -- *.exe *.dmg > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          WIN_DIR="release-assets/lingo-bridge-Windows-x64-alpha"
+          ARM_DIR="release-assets/lingo-bridge-macOS-Apple-Silicon-alpha"
+          INTEL_DIR="release-assets/lingo-bridge-macOS-Intel-alpha"
+          test "$(find "$WIN_DIR" -type f -name '*.exe' | wc -l)" -eq 1
+          test "$(find "$ARM_DIR" -type f -name '*.dmg' | wc -l)" -eq 1
+          test "$(find "$INTEL_DIR" -type f -name '*.dmg' | wc -l)" -eq 1
+          mkdir -p release-files
+          cp "$(find "$WIN_DIR" -type f -name '*.exe' -print -quit)" "release-files/lingo-bridge-$TAG-windows-x64.exe"
+          cp "$(find "$ARM_DIR" -type f -name '*.dmg' -print -quit)" "release-files/lingo-bridge-$TAG-macos-arm64.dmg"
+          cp "$(find "$INTEL_DIR" -type f -name '*.dmg' -print -quit)" "release-files/lingo-bridge-$TAG-macos-x64.dmg"
+          (cd release-files && sha256sum -- *.exe *.dmg > SHA256SUMS.txt)
+          ls -lh release-files/
       - name: Publish public prerelease (unsigned test builds)
         if: ${{ steps.release.outputs.exists == 'false' }}
         uses: softprops/action-gh-release@v2
@@ -162,9 +171,9 @@ jobs:
           body_path: ${{ steps.release.outputs.notes }}
           overwrite_files: false
           files: |
-            release-assets/*.exe
-            release-assets/*.dmg
-            release-assets/SHA256SUMS.txt
+            release-files/*.exe
+            release-files/*.dmg
+            release-files/SHA256SUMS.txt
           fail_on_unmatched_files: true
 
   release-draft:
@@ -175,10 +184,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
       - name: Validate tag matches application version
         shell: bash
         env:
@@ -191,19 +200,28 @@ jobs:
             exit 1
           fi
       - name: Download all three artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: lingo-bridge-*-alpha
           path: release-assets
-          merge-multiple: true
-      - name: Verify installers and compute SHA256
+          merge-multiple: false
+      - name: Collect and verify draft installer files
         shell: bash
+        env:
+          TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          test "$(find release-assets -maxdepth 1 -type f -name '*.exe' | wc -l)" -eq 1
-          test "$(find release-assets -maxdepth 1 -type f -name '*.dmg' | wc -l)" -eq 2
-          cd release-assets
-          sha256sum -- *.exe *.dmg > SHA256SUMS.txt
+          WIN_DIR="release-assets/lingo-bridge-Windows-x64-alpha"
+          ARM_DIR="release-assets/lingo-bridge-macOS-Apple-Silicon-alpha"
+          INTEL_DIR="release-assets/lingo-bridge-macOS-Intel-alpha"
+          test "$(find "$WIN_DIR" -type f -name '*.exe' | wc -l)" -eq 1
+          test "$(find "$ARM_DIR" -type f -name '*.dmg' | wc -l)" -eq 1
+          test "$(find "$INTEL_DIR" -type f -name '*.dmg' | wc -l)" -eq 1
+          mkdir -p release-files
+          cp "$(find "$WIN_DIR" -type f -name '*.exe' -print -quit)" "release-files/lingo-bridge-$TAG-windows-x64.exe"
+          cp "$(find "$ARM_DIR" -type f -name '*.dmg' -print -quit)" "release-files/lingo-bridge-$TAG-macos-arm64.dmg"
+          cp "$(find "$INTEL_DIR" -type f -name '*.dmg' -print -quit)" "release-files/lingo-bridge-$TAG-macos-x64.dmg"
+          (cd release-files && sha256sum -- *.exe *.dmg > SHA256SUMS.txt)
       - name: Create draft pre-release
         uses: softprops/action-gh-release@v2
         with:
@@ -216,7 +234,7 @@ jobs:
           body_path: docs/releases/${{ inputs.release_tag }}.md
           overwrite_files: false
           files: |
-            release-assets/*.exe
-            release-assets/*.dmg
-            release-assets/SHA256SUMS.txt
+            release-files/*.exe
+            release-files/*.dmg
+            release-files/SHA256SUMS.txt
           fail_on_unmatched_files: true
