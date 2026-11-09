@@ -44,8 +44,7 @@ pub fn sensevoice_wav(wav: &Path, model: &Path, tokens: &Path) -> Result<String,
     config.model_config.tokens = Some(tokens_path);
     config.model_config.num_threads = 2;
 
-    let recognizer =
-        OfflineRecognizer::create(&config).ok_or("無法載入 SenseVoice 模型")?;
+    let recognizer = OfflineRecognizer::create(&config).ok_or("無法載入 SenseVoice 模型")?;
     let stream = recognizer.create_stream();
     stream.accept_waveform(wave.sample_rate(), wave.samples());
     recognizer.decode(&stream);
@@ -96,11 +95,13 @@ pub fn supertonic_japanese(
         ..Default::default()
     };
     let audio = tts
-        .generate_with_config(text, &generation, Some(|_samples: &[f32], _progress: f32| true))
+        .generate_with_config(
+            text,
+            &generation,
+            Some(|_samples: &[f32], _progress: f32| true),
+        )
         .ok_or("日文語音合成失敗")?;
-    let output = wav_out
-        .to_str()
-        .ok_or("輸出路徑包含無法處理的字元")?;
+    let output = wav_out.to_str().ok_or("輸出路徑包含無法處理的字元")?;
     if !audio.save(output) {
         return Err("無法儲存合成後的 WAV 檔案".into());
     }
