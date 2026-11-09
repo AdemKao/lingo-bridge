@@ -9,6 +9,11 @@ or **build-validated** work; hardware validation is noted separately.
 
 ## [Unreleased]
 
+### Added
+- One-second, user-triggered local-only microphone and incoming LINE virtual-cable input-level diagnostics in the desktop UI.
+- Experimental Chinese Matcha-TTS WAV output; offline Chinese↔Japanese file-to-file pipeline using SenseVoice, local Ollama and two TTS voices (CLI only, no LINE routing).
+- Optional pipeline feature compilation in Windows/macOS CI.
+
 ### Planned
 - Validate LINE audio capture and bilingual speech on physical Windows/Mac devices.
 - Complete offline Mandarin TTS and connect local STT/translation/TTS to live audio.

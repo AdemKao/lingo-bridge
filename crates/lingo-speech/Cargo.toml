@@ -2,15 +2,17 @@
 name = "lingo-speech"
 version.workspace = true
 edition.workspace = true
-description = "Offline speech utterance segmentation, and opt-in sherpa-onnx STT/TTS smoke tests"
+description = "Offline speech segmentation and opt-in sherpa-onnx / Ollama speech translation POC"
 
 [features]
 default = []
 sherpa = ["dep:sherpa-onnx", "dep:serde_json"]
+offline-pipeline = ["sherpa", "dep:reqwest"]
 
 [dependencies]
 sherpa-onnx = { version = "2.0.1", optional = true }
 serde_json = { version = "1", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
 
 [[bin]]
 name = "lingo-speech-smoke"

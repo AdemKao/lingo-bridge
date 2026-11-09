@@ -14,3 +14,5 @@ models/
 *.onnx
 *.gguf
 *.safetensors
+# Locally generated speech samples
+outputs/

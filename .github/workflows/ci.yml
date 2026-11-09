@@ -68,4 +68,4 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check optional offline STT and TTS adapters
-        run: cargo check -p lingo-speech --features sherpa --bin lingo-speech-smoke
+        run: cargo check -p lingo-speech --features offline-pipeline --bin lingo-speech-smoke

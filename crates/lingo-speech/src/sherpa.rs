@@ -5,7 +5,8 @@
 
 use sherpa_onnx::{
     GenerationConfig, OfflineRecognizer, OfflineRecognizerConfig, OfflineSenseVoiceModelConfig,
-    OfflineTts, OfflineTtsConfig, OfflineTtsSupertonicModelConfig, Wave,
+    OfflineTts, OfflineTtsConfig, OfflineTtsMatchaModelConfig, OfflineTtsSupertonicModelConfig,
+    Wave,
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -106,4 +107,102 @@ pub fn supertonic_japanese(
         return Err("無法儲存合成後的 WAV 檔案".into());
     }
     Ok(wav_out.to_path_buf())
+}
+
+/// Simplified/Traditional Chinese speech with Matcha-TTS Chinese Baker ONNX.
+///
+/// The model normally expects Chinese lexicon/dictionary data and a separate
+/// 22kHz Vocos vocoder. All weights are supplied by the user and are not
+/// redistributed. Test Traditional Chinese pronunciation independently:
+/// this voice was trained primarily on Mainland Mandarin material.
+pub fn matcha_chinese(
+    model_dir: &Path,
+    vocoder_path: &Path,
+    text: &str,
+    wav_out: &Path,
+) -> Result<PathBuf, String> {
+    if text.trim().is_empty() || text.chars().count() > 600 {
+        return Err("請輸入 1–600 字的中文文字".into());
+    }
+    if let Some(parent) = wav_out.parent() {
+        if !parent.as_os_str().is_empty() && !parent.is_dir() {
+            return Err("輸出 WAV 資料夾不存在".into());
+        }
+    }
+    let dict_dir = model_dir.join("dict");
+    if !dict_dir.is_dir() {
+        return Err(format!("找不到 Matcha 中文字典：{}", dict_dir.display()));
+    }
+    let model = OfflineTtsMatchaModelConfig {
+        acoustic_model: Some(file_in(model_dir, "model-steps-3.onnx")?),
+        vocoder: Some(ensure_file(vocoder_path)?),
+        lexicon: Some(file_in(model_dir, "lexicon.txt")?),
+        tokens: Some(file_in(model_dir, "tokens.txt")?),
+        dict_dir: Some(dict_dir.to_string_lossy().into_owned()),
+        noise_scale: 0.667,
+        length_scale: 1.0,
+        ..Default::default()
+    };
+
+    let rules = [
+        file_in(model_dir, "phone.fst")?,
+        file_in(model_dir, "date.fst")?,
+        file_in(model_dir, "number.fst")?,
+    ]
+    .join(",");
+    let config = OfflineTtsConfig {
+        model: sherpa_onnx::OfflineTtsModelConfig {
+            matcha: model,
+            num_threads: 2,
+            ..Default::default()
+        },
+        rule_fsts: Some(rules),
+        ..Default::default()
+    };
+    let tts = OfflineTts::create(&config).ok_or("無法載入 Matcha 中文語音模型")?;
+    let generation = GenerationConfig {
+        sid: 0,
+        speed: 1.0,
+        ..Default::default()
+    };
+    let audio = tts
+        .generate_with_config(
+            text,
+            &generation,
+            Some(|_samples: &[f32], _progress: f32| true),
+        )
+        .ok_or("中文語音合成失敗")?;
+    let output = wav_out.to_str().ok_or("輸出路徑包含無法處理的字元")?;
+    if !audio.save(output) {
+        return Err("無法儲存中文語音 WAV".into());
+    }
+    Ok(wav_out.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_chinese_model_files_fail_before_inference() {
+        let root = std::env::temp_dir().join("lingo-nonexistent-matcha-2026");
+        let result = matcha_chinese(
+            &root,
+            &root.join("vocos.onnx"),
+            "你好",
+            &root.join("output.wav"),
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn empty_chinese_input_is_rejected() {
+        let result = matcha_chinese(
+            Path::new("."),
+            Path::new("vocos-22khz-univ.onnx"),
+            "   ",
+            Path::new("out.wav"),
+        );
+        assert!(result.is_err());
+    }
 }

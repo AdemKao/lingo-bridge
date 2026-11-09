@@ -32,6 +32,7 @@ type ModelInfo = {
 };
 type LocalStatus = { available: boolean; message: string; models: ModelInfo[] };
 type ModelProgress = { model: string; status: string; percent: number | null };
+type InputLevel = { rms: number; peak: number; sampleCount: number; sampleRate: number; durationMs: number };
 
 const locales: Array<{ id: Locale; label: string }> = [
   { id: "zh", label: "中文（繁體）" },
@@ -121,6 +122,7 @@ export default function App() {
   const [apiKey, setApiKey] = useState("");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [levelMessage, setLevelMessage] = useState("");
   const [subtitles, setSubtitles] = useState<Record<EventDirection, Record<Caption, string>>>({
     outbound: { original: "", translated: "" },
     inbound: { original: "", translated: "" },
@@ -270,6 +272,25 @@ export default function App() {
     }
   }
 
+  async function checkInputLevel(kind: "microphoneInput" | "lineIncomingInput") {
+    const inputId = selection[kind];
+    const label = kind === "microphoneInput" ? "實體麥克風" : "LINE 接收線路（Cable B）";
+    setBusy(true);
+    setError("");
+    setLevelMessage(label + "：正在測試約 1 秒…");
+    try {
+      const level = await invoke<InputLevel>("check_audio_input_level", { inputId });
+      const result = level.rms < 0.003 ? "接近靜音，請確認是否有聲音進入" : "已偵測到聲音";
+      setLevelMessage(label + "：" + result + " · RMS " +
+        (level.rms * 100).toFixed(1) + "% · Peak " +
+        (level.peak * 100).toFixed(1) + "% · " + level.durationMs + "ms");
+    } catch (reason) {
+      setLevelMessage(label + " 測試失敗：" + String(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function installModel(model: ModelInfo) {
     if (!window.confirm("下載 " + model.name + " (" + model.sizeNote + ")？\n請先閱讀授權條款：" + model.licenseUrl + "\n下載後將儲存在 Ollama 的本地模型目錄。")) return;
     setModelBusy(true);
@@ -350,6 +371,16 @@ export default function App() {
         <div className="test-panel">
           <div><strong>無 API 的音訊測試</strong><small>先在 LINE 原生通話中確認對方能聽見測試音。</small></div>
           <button className="secondary" disabled={!selection.lineOutgoingOutput || inCall || busy} onClick={() => void testTone()}>播放 0.5 秒測試音</button>
+        </div>
+        <div className="input-diagnostics">
+          <div><strong>音訊輸入偵測（本機）</strong><small>手動量測約一秒的音量，不保存聲音，也不傳送到雲端。LINE 通話時請先告知對方。</small></div>
+          <div className="diag-buttons">
+            <button className="secondary compact" type="button" disabled={!selection.microphoneInput || inCall || busy}
+              onClick={() => void checkInputLevel("microphoneInput")}>測試我的麥克風</button>
+            <button className="secondary compact" type="button" disabled={!selection.lineIncomingInput || inCall || busy}
+              onClick={() => void checkInputLevel("lineIncomingInput")}>測試 LINE 接收音訊</button>
+          </div>
+          {levelMessage && <p className="diag-result" role="status">{levelMessage}</p>}
         </div>
       </section>
     </div>

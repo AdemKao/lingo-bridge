@@ -96,6 +96,27 @@ fn test_outbound_tone(
     audio::test_tone(&line_outgoing_output).map_err(|error| error.to_string())
 }
 
+/// Explicit user-triggered diagnostic, never sent to a model or written to disk.
+#[tauri::command]
+async fn check_audio_input_level(
+    state: State<'_, AppState>,
+    input_id: String,
+) -> Result<audio::InputLevel, String> {
+    {
+        let guard = state.session.lock().map_err(|_| "狀態鎖定失敗")?;
+        if guard
+            .as_ref()
+            .is_some_and(|session| session.alive.load(Ordering::SeqCst))
+        {
+            return Err("請先停止通話音訊處理，再執行麥克風量測".into());
+        }
+    }
+    tauri::async_runtime::spawn_blocking(move || audio::check_input_level(&input_id))
+        .await
+        .map_err(|_| "本機音訊量測執行緒失敗".to_owned())?
+        .map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 fn start_translation(
     app: AppHandle,
@@ -234,6 +255,7 @@ pub fn run() {
             get_runtime_status,
             list_audio_devices,
             test_outbound_tone,
+            check_audio_input_level,
             start_translation,
             stop_translation,
             get_local_model_status,

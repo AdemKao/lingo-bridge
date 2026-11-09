@@ -9,6 +9,9 @@ use std::collections::VecDeque;
 #[cfg(feature = "sherpa")]
 pub mod sherpa;
 
+#[cfg(feature = "offline-pipeline")]
+pub mod offline;
+
 #[derive(Clone, Copy, Debug)]
 pub struct SegmentConfig {
     pub sample_rate: u32,
