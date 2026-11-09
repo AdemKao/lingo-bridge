@@ -63,7 +63,7 @@ pub fn supertonic_japanese(
         return Err("請輸入 1–600 字的日文文字".into());
     }
     if let Some(parent) = wav_out.parent() {
-        if !parent.exists() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
             return Err("輸出 WAV 資料夾不存在".into());
         }
     }
