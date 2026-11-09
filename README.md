@@ -88,4 +88,6 @@ Independent project, not affiliated with or endorsed by LINE or LY Corporation. 
 
 ## Unsigned preview builds
 
+After generating icons, local preview installers can also be built using `npm run tauri -- build --config src-tauri/tauri.bundle.conf.json` from `apps/desktop`.
+
 The [Desktop preview installers workflow](https://github.com/AdemKao/lingo-bridge/actions/workflows/build-desktop.yml) provides a **manual** GitHub Actions build for Windows NSIS and a macOS app archive. Trigger it from Actions → Run workflow. These are **unsigned developer builds** for testing, not production releases. Virtual audio drivers are **not bundled**; on macOS, unsigned/unnotarized apps may require platform trust or signing before they can run. Production releases require signing, driver licensing checks and real-call verification.

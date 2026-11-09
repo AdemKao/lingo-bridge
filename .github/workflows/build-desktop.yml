@@ -36,7 +36,7 @@ jobs:
 
       - name: Build unsigned native desktop bundle
         working-directory: apps/desktop
-        run: npm run tauri -- build --bundles ${{ matrix.bundles }}
+        run: npm run tauri -- build --config src-tauri/tauri.bundle.conf.json --bundles ${{ matrix.bundles }}
 
       - name: Package macOS app archive
         if: runner.os == 'macOS'
